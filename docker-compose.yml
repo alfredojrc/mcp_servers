@@ -1,0 +1,32 @@
+services:
+  k8s-mcp:
+    build:
+      context: ./k8s_mcp
+      dockerfile: Dockerfile
+    privileged: true
+    volumes:
+      - ./k8s_mcp/.WebControl:/root/.WebControl
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./k8s_mcp:/workspace
+      - ~/.kube:/root/.kube
+    ports:
+      - "5001:5001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_APP=main.py
+      - FLASK_ENV=development
+      - WEBCONTROL_PORT=5001
+      - WEBCONTROL_AUTO_START=true
+      - WEBCONTROL_WAIT_TIME=30
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - seccomp:unconfined
+    user: root
+
+networks:
+  mcp-network:
+    driver: bridge 

@@ -1,4 +1,4 @@
-# 05_vmware_mcp (Port 5005)
+# 05_vmware_mcp (Port 8005)
 
 ## Purpose
 Provides tools for interacting with VMware vSphere (vCenter or standalone ESXi hosts) using the vSphere API.
@@ -56,7 +56,7 @@ Interacts with virtualization infrastructure.
 - **vSphere Permissions:** Use a dedicated vSphere user/role with the minimum required privileges for the MCP server's actions.
 
 ## Configuration
-- `MCP_PORT=5005`
+- `MCP_PORT=8005`
 - `VCENTER_HOST`
 - `VCENTER_USER`
 - `VCENTER_PASSWORD_SECRET_PATH`

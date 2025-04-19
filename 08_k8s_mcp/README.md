@@ -1,4 +1,4 @@
-# 08_k8s_mcp (Port 5008)
+# 08_k8s_mcp (Port 8008)
 
 ## Purpose
 Provides tools for interacting with Kubernetes clusters using `kubectl` or Kubernetes client libraries.
@@ -63,8 +63,8 @@ Interacts with potentially production Kubernetes clusters.
 - **RBAC:** The permissions granted by the Kubeconfig context determine what the server can do. Use RBAC within Kubernetes to limit the service account or user associated with the Kubeconfig.
 
 ## Configuration
-- `MCP_PORT=5008`
-- `WEBCONTROL_PORT=5008` (Internal port the service listens on)
+- `MCP_PORT=8008`
+- `WEBCONTROL_PORT=8008` (Internal port the service listens on)
 - `KUBECONFIG=/root/.kube/config` (or path inside container where config is mounted)
 
 ## Observability

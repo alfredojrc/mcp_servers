@@ -1,4 +1,4 @@
-# 07_web_browsing_mcp (Port 5007)
+# 07_web_browsing_mcp (Port 8007)
 
 ## Purpose
 Provides tools for web browsing, page interaction, and content extraction, likely using a headless browser like Playwright or Selenium.
@@ -54,7 +54,7 @@ Interacts with the public web and potentially internal sites.
 - **Credential Handling:** Avoid hardcoding credentials for site logins; if login is needed, design tools carefully and potentially require credentials passed per-call (masked in logs).
 
 ## Configuration
-- `MCP_PORT=5007`
+- `MCP_PORT=8007`
 - `BROWSER_TYPE` (e.g., `chromium`, `firefox`)
 - `SELENIUM_GRID_URL` (If using a separate Selenium container)
 

@@ -1,4 +1,4 @@
-# 00_master_mcp (Port 5000)
+# 00_master_mcp (Port 8000)
 
 ## Purpose
 `00_master_mcp` is the *central orchestrator* of the entire multi‑agent system.  It runs as the **MCP Host** and coordinates all downstream MCP service containers (servers).  
@@ -8,7 +8,7 @@ Its responsibilities include:
 2. Aggregating, sanitising and routing context between the LLM and servers.
 3. Enforcing security and consent policies.
 4. Orchestrating complex workflows that span multiple services (e.g. *query Azure ⇒ ssh to VM ⇒ run k8s helm upgrade*).
-5. Providing a single SSE endpoint (`:5000`) so external tools (e.g. Cursor, Claude Desktop) can attach to **one** host and indirectly reach every internal server.
+5. Providing a single SSE endpoint (`:8000`) so external tools (e.g. Cursor, Claude Desktop) can attach to **one** host and indirectly reach every internal server.
 
 > **Reference**: MCP host / client / server architecture in the official spec ([modelcontextprotocol.io – Architecture](https://modelcontextprotocol.io/specification/2025-03-26/architecture)).
 
@@ -62,22 +62,22 @@ from mcp.host.fastmcp import FastMCPHost
 from mcp_agent import AgentGraph
 
 DEFAULT_SERVERS = {
-    "os.linux":       "http://01_linux_cli_mcp:5001",
-    "os.windows":     "http://02_windows_mcp:5002",
-    "cloud.azure":    "http://03_azure_mcp:5003",
-    "cloud.gcloud":   "http://04_google_cloud_mcp:5004",
-    "infra.vmware":   "http://05_vmware_mcp:5005",
-    "web.search":     "http://06_web_search_mcp:5006",
-    "web.browse":     "http://07_web_browsing_mcp:5007",
-    "infra.k8s":      "http://08_k8s_mcp:5008",
-    "workflows.n8n":  "http://09_n8n_mcp:5009",
-    "os.macos":       "http://10_macos_mcp:5010",
-    "trading.freq":   "http://11_freqtrade_mcp:5011",
-    "cmdb":           "http://12_cmdb_mcp:5012",
-    "secrets":        "http://13_secrets_mcp:5013",
+    "os.linux":       "http://01_linux_cli_mcp:8001",
+    "os.windows":     "http://02_windows_mcp:8002",
+    "cloud.azure":    "http://03_azure_mcp:8003",
+    "cloud.gcloud":   "http://04_google_cloud_mcp:8004",
+    "infra.vmware":   "http://05_vmware_mcp:8005",
+    "web.search":     "http://06_web_search_mcp:8006",
+    "web.browse":     "http://07_web_browsing_mcp:8007",
+    "infra.k8s":      "http://08_k8s_mcp:8008",
+    "workflows.n8n":  "http://09_n8n_mcp:8009",
+    "os.macos":       "http://10_macos_mcp:8010",
+    "trading.freq":   "http://11_freqtrade_mcp:8011",
+    "cmdb":           "http://12_cmdb_mcp:8012",
+    "secrets":        "http://13_secrets_mcp:8013",
 }
 
-host = FastMCPHost(name="master", port=5000)
+host = FastMCPHost(name="master-mcp-host", port=8000)
 
 a_graph = AgentGraph(host)
 # Optionally define sub‑graphs / branches here (see hierarchy section)
@@ -116,37 +116,37 @@ While MCP traditionally connects host→servers in a **flat** topology, the `00_
 
 ### Proposed Layout Example
 ```
-master
+master (:8000)
  ├─ os
- │  ├─ linux           (01_linux_cli_mcp)
+ │  ├─ linux           (01_linux_cli_mcp:8001)
  │  │  ├─ cli.*        # Generic commands, file ops
  │  │  ├─ ceph.*       # Ceph cluster commands
  │  │  ├─ nginx.*      # Nginx service/config mgmt
  │  │  ├─ mta.*        # Mail Transfer Agent ops
  │  │  └─ sftp.*       # SFTP server management
- │  ├─ windows.*     (02_windows_mcp)
- │  └─ macos.*       (10_macos_mcp)
+ │  ├─ windows.*     (02_windows_mcp:8002)
+ │  └─ macos.*       (10_macos_mcp:8010)
  ├─ cloud
- │  ├─ azure.*       (03_azure_mcp)
- │  └─ gcloud.*      (04_google_cloud_mcp)
+ │  ├─ azure.*       (03_azure_mcp:8003)
+ │  └─ gcloud.*      (04_google_cloud_mcp:8004)
  ├─ infra
- │  ├─ vmware.*      (05_vmware_mcp)
- │  └─ k8s.*         (08_k8s_mcp)
+ │  ├─ vmware.*      (05_vmware_mcp:8005)
+ │  └─ k8s.*         (08_k8s_mcp:8008)
  ├─ web
- │  ├─ search.*      (06_web_search_mcp)
- │  └─ browse.*      (07_web_browsing_mcp)
+ │  ├─ search.*      (06_web_search_mcp:8006)
+ │  └─ browse.*      (07_web_browsing_mcp:8007)
  ├─ workflows
- │  └─ n8n.*         (09_n8n_mcp)
+ │  └─ n8n.*         (09_n8n_mcp:8009)
  ├─ trading
- │  └─ freq.*        (11_freqtrade_mcp)
- ├─ cmdb              (12_cmdb_mcp)
+ │  └─ freq.*        (11_freqtrade_mcp:8011)
+ ├─ cmdb              (12_cmdb_mcp:8012)
  │  ├─ local.*       # Tools for local CSV/SQLite CMDB
  │  └─ servicenow.*  # Tools for ServiceNow integration
- └─ secrets           (13_secrets_mcp)
+ └─ secrets           (13_secrets_mcp:8013)
     ├─ keepass.*     # Tools for KeePass backend
     ├─ azurekv.*     # Tools for Azure Key Vault backend
     └─ gcp_sm.*      # Tools for Google Secret Manager backend
 ```
 
 *   Each leaf node represents a tool (e.g., `os.linux.ceph.getStatus`, `cmdb.local.getServerInfo`, `secrets.keepass.getEntry`).
-*   Implementation: Adjust `SERVERS` keys in `
+*   Implementation: Adjust `DEFAULT_SERVERS` keys in `mcp_host.py` to match the desired top-level namespaces (e.g., `DEFAULT_SERVERS = {"os.linux": "http://01_linux_cli_mcp:8001", ...}`) and ensure the downstream servers (like `01_linux_cli_mcp`) correctly register their tools with the appropriate sub-namespaces.

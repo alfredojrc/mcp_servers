@@ -4,9 +4,9 @@ services:
       context: ./00_master_mcp
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "8000:8000"
     environment:
-      - MCP_PORT=5000
+      - MCP_PORT=8000
     volumes:
       - ./secrets:/secrets:ro
     networks:
@@ -24,15 +24,15 @@ services:
       - ./08_k8s_mcp:/workspace
       - ~/.kube:/root/.kube
     ports:
-      - "5008:5008"
+      - "8008:8008"
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_APP=main.py
       - FLASK_ENV=development
-      - WEBCONTROL_PORT=5008
+      - WEBCONTROL_PORT=8008
       - WEBCONTROL_AUTO_START=true
       - WEBCONTROL_WAIT_TIME=30
-      - MCP_PORT=5008
+      - MCP_PORT=8008
     restart: unless-stopped
     networks:
       - mcp-network
@@ -47,9 +47,9 @@ services:
       context: ./01_linux_cli_mcp
       dockerfile: Dockerfile
     ports:
-      - "5001:5001"
+      - "8001:8001"
     environment:
-      - MCP_PORT=5001
+      - MCP_PORT=8001
       # TODO: Define allowed commands and paths based on security needs
       - ALLOWED_COMMANDS=ls,cat,grep,ps,df,echo,stat,head,tail,find # Example safe commands
       - ALLOWED_READ_PATHS=/etc:/var/log:/tmp:/home # Example read paths
@@ -76,9 +76,9 @@ services:
       context: ./13_secrets_mcp
       dockerfile: Dockerfile
     ports:
-      - "5013:5013"
+      - "8013:8013"
     environment:
-      - MCP_PORT=5013
+      - MCP_PORT=8013
       # --- Backend Configuration - Enable and configure as needed --- 
       # KeePass:
       - KEEPASS_DB_PATH=/secrets/keepass/MySecrets.kdbx # Path inside container
@@ -110,10 +110,10 @@ services:
       # - ./path/to/your/gcp-sa-key.json:/secrets/gcp/gcp-sa-key.json:ro
       # Example: Mount KeePass key file if used
       # - ./path/to/your/MyKey.key:/secrets/keepass/MyKey.key:ro
-    secrets:
-      # Define Docker secrets (these must exist or be defined below)
-      - keepass_master_password
-      - azure_sp_secret
+    # secrets: # Temporarily comment out until secrets are defined
+    #   # Define Docker secrets (these must exist or be defined below)
+    #   - keepass_master_password
+    #   - azure_sp_secret
     networks:
       - mcp-network
     restart: unless-stopped
@@ -123,9 +123,9 @@ services:
       context: ./12_cmdb_mcp
       dockerfile: Dockerfile
     ports:
-      - "5012:5012"
+      - "8012:8012"
     environment:
-      - MCP_PORT=5012
+      - MCP_PORT=8012
       # --- Backend Configuration - Enable and configure as needed ---
       # Local CMDB (Example: CSV)
       - LOCAL_CMDB_PATH=/data/cmdb.csv # Path inside container
@@ -140,9 +140,9 @@ services:
       - ./secrets:/secrets:ro 
       # Example: Mount local CMDB data (e.g., a CSV file or SQLite DB)
       - ./12_cmdb_mcp/data:/data # Mount host data dir to /data in container
-    secrets:
-      # Define Docker secrets (these must exist or be defined below)
-      - servicenow_password
+    # secrets: # Temporarily comment out until secrets are defined
+    #   # Define Docker secrets (these must exist or be defined below)
+    #   - servicenow_password
     networks:
       - mcp-network
     restart: unless-stopped

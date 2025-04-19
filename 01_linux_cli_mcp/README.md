@@ -1,4 +1,4 @@
-# 01_linux_cli_mcp (Port 5001)
+# 01_linux_cli_mcp (Port 8001)
 
 ## Purpose
 This MCP server provides secure, controlled access to execute commands and interact with the filesystem on target Linux systems. It serves as the primary interface for managing Linux hosts and the services running on them (like Nginx, Ceph, MTAs, SFTP, etc.) without needing dedicated MCP servers for each subsystem.
@@ -74,7 +74,7 @@ This server interacts directly with Linux systems and therefore adheres strictly
 
 Environment variables needed might include:
 
--   `MCP_PORT=5001`
+-   `MCP_PORT=8001`
 -   `ALLOWED_COMMANDS` (Comma-separated list of allowed base commands, e.g., `ls,cat,grep,ps,df,ceph,nginx,systemctl,useradd`)
 -   `ALLOWED_READ_PATHS` (Colon-separated list of allowed directories/files for reading, e.g., `/var/log:/etc/nginx:/home/user/.config`)
 -   `ALLOWED_WRITE_PATHS` (Colon-separated list of allowed directories for writing, e.g., `/etc/nginx/sites-enabled:/tmp`)

@@ -1,4 +1,4 @@
-# 12_cmdb_mcp (Port 5012)
+# 12_cmdb_mcp (Port 8012)
 
 ## Purpose
 Provides tools to query and manage configuration data from a local source (CSV/SQLite) and external CMDBs (e.g., ServiceNow).
@@ -17,7 +17,7 @@ Tools are organized under the `cmdb.*` namespace (e.g., `cmdb.local.*`, `cmdb.se
 - Securely handle credentials for external CMDBs.
 
 ## Configuration
-- `MCP_PORT=5012`
+- `MCP_PORT=8012`
 - `LOCAL_CMDB_PATH=/data/cmdb.csv`
 - `SERVICENOW_INSTANCE`
 - `SERVICENOW_USER`

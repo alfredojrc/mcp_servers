@@ -75,17 +75,17 @@ Would you like more specific information about setting up any of these MCP serve
 This project uses Docker Compose to deploy a self-contained multi-agent MCP system. Each service runs in its own container on the `mcp-network`, enabling modular development and secure communication.
 
 1. **0_master_mcp (Orchestrator)**
-   - Runs as the MCP Host container.
+   - Runs as the MCP Host container (Port `8000`).
    - Coordinates tasks by invoking tools on specialized MCP service containers via HTTP/SSE.
 
 2. **Specialized MCP Service Containers**
-   - `k8s-mcp`          (Kubernetes interactions)        – port 5001
-   - `azure-mcp`        (Azure API interface)           – port 5002
-   - `linux-cli-mcp`    (Linux command execution)       – port 5003
-   - `freqtrade-mcp`    (Freqtrade trading operations)   – port 5004
-   - `web-search-mcp`   (Web search tool)               – port 5005
-   - `web-browsing-mcp` (Web browsing tool)             – port 5006
-   - `windows-mcp`      (Windows operations)            – port 5007
+   - `k8s-mcp`          (Kubernetes interactions)        – port 8001
+   - `azure-mcp`        (Azure API interface)           – port 8002
+   - `linux-cli-mcp`    (Linux command execution)       – port 8003
+   - `freqtrade-mcp`    (Freqtrade trading operations)   – port 8004
+   - `web-search-mcp`   (Web search tool)               – port 8005
+   - `web-browsing-mcp` (Web browsing tool)             – port 8006
+   - `windows-mcp`      (Windows operations)            – port 8007
 
 3. **Internal Docker Network**
    - All containers join the `mcp-network`.
@@ -156,7 +156,7 @@ See also the [Multi-Agent Systems Design Considerations](https://medium.com/@raj
 ## Architecture
 
 ### Central Orchestrator (`00_master_mcp`)
-- Acts as the MCP **Host** container.
+- Acts as the MCP **Host** container (Port `8000`).
 - Manages state for ongoing workflows (see [State Management](#state-management)).
 - Coordinates workflows by chaining tool calls to specialized service containers.
 - Can organize downstream servers hierarchically using namespaces. See [00_master_mcp/README.md](./00_master_mcp/README.md) for details on the hierarchical approach.
@@ -195,20 +195,20 @@ For a Kubernetes reference implementation, see [mcp-server-kubernetes](https://g
 
 | Service Name            | Port | Description                       |
 |-------------------------|------|-----------------------------------|
-| `00_master_mcp`         | 5000 | Orchestrator (MCP Host)           |
-| `01_linux_cli_mcp`      | 5001 | Linux shell command execution     |
-| `02_windows_mcp`        | 5002 | Windows PowerShell execution      |
-| `03_azure_mcp`          | 5003 | Azure resource management         |
-| `04_google_cloud_mcp`   | 5004 | Google Cloud resource management  |
-| `05_vmware_mcp`         | 5005 | VMware infrastructure management  |
-| `06_web_search_mcp`     | 5006 | Web search capabilities           |
-| `07_web_browsing_mcp`   | 5007 | Web browsing/navigation           |
-| `08_k8s_mcp`            | 5008 | Kubernetes cluster operations     |
-| `09_n8n_mcp`            | 5009 | n8n workflow orchestration        |
-| `10_macos_mcp`          | 5010 | macOS system operations           |
-| `11_freqtrade_mcp`      | 5011 | Freqtrade trading operations      |
-| `12_cmdb_mcp`           | 5012 | Configuration Management Database |
-| `13_secrets_mcp`        | 5013 | Secrets Management Interface      |
+| `00_master_mcp`         | 8000 | Orchestrator (MCP Host)           |
+| `01_linux_cli_mcp`      | 8001 | Linux shell command execution     |
+| `02_windows_mcp`        | 8002 | Windows PowerShell execution      |
+| `03_azure_mcp`          | 8003 | Azure resource management         |
+| `04_google_cloud_mcp`   | 8004 | Google Cloud resource management  |
+| `05_vmware_mcp`         | 8005 | VMware infrastructure management  |
+| `06_web_search_mcp`     | 8006 | Web search capabilities           |
+| `07_web_browsing_mcp`   | 8007 | Web browsing/navigation           |
+| `08_k8s_mcp`            | 8008 | Kubernetes cluster operations     |
+| `09_n8n_mcp`            | 8009 | n8n workflow orchestration        |
+| `10_macos_mcp`          | 8010 | macOS system operations           |
+| `11_freqtrade_mcp`      | 8011 | Freqtrade trading operations      |
+| `12_cmdb_mcp`           | 8012 | Configuration Management Database |
+| `13_secrets_mcp`        | 8013 | Secrets Management Interface      |
 
 ## Operating Principles
 
@@ -242,19 +242,19 @@ services:
   00_master_mcp:
     build: ./00_master_mcp
     ports:
-      - "5000:5000"
+      - "8000:8000"
     networks:
       - mcp-network
   01_linux_cli_mcp:
     build: ./01_linux_cli_mcp
     ports:
-      - "5001:5001"
+      - "8001:8001"
     networks:
       - mcp-network
   02_windows_mcp:
     build: ./02_windows_mcp
     ports:
-      - "5002:5002"
+      - "8002:8002"
     networks:
       - mcp-network
   # ... remaining services follow the pattern build: ./NN_<name>_mcp ...
@@ -278,7 +278,7 @@ See [`ports.md`](./ports.md) for detailed container→host port mappings.
 
 - **Containers/Services:** Use numeric prefixes (`NN_`) matching directories (e.g., `01_linux_cli_mcp`).
 - **MCP Tools:** `verbNoun` (e.g., `createVm`, `listPods`).
-- **Ports:** Align service index with port offset (0→5000, 1→5001, …, 13→5013).
+- **Ports:** Align service index with port offset (0→8000, 1→8001, …, 13→8013).
 
 ## Evaluation & Testing
 

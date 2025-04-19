@@ -1,4 +1,4 @@
-# 03_azure_mcp (Port 5003)
+# 03_azure_mcp (Port 8003)
 
 ## Purpose
 Provides tools for interacting with Microsoft Azure services using the Azure SDK or APIs.
@@ -60,7 +60,7 @@ Interacts with cloud infrastructure.
 - **Azure RBAC:** Assign the least privilege Azure roles necessary for the Service Principal or Managed Identity.
 
 ## Configuration
-- `MCP_PORT=5003`
+- `MCP_PORT=8003`
 - `AZURE_CLIENT_ID` (If using Service Principal)
 - `AZURE_TENANT_ID` (If using Service Principal)
 - `AZURE_CLIENT_SECRET_SECRET_PATH` (Path to mounted Docker secret for SP secret)

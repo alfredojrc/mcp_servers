@@ -1,4 +1,4 @@
-# 04_google_cloud_mcp (Port 5004)
+# 04_google_cloud_mcp (Port 8004)
 
 ## Purpose
 Provides tools for interacting with Google Cloud Platform (GCP) services using the GCP SDK or APIs.
@@ -57,7 +57,7 @@ Interacts with cloud infrastructure.
 - **IAM Permissions:** Assign the least privilege IAM roles necessary for the service account used by the MCP server.
 
 ## Configuration
-- `MCP_PORT=5004`
+- `MCP_PORT=8004`
 - `GOOGLE_APPLICATION_CREDENTIALS` (Path to the mounted service account key file inside the container, e.g., `/secrets/gcp-key.json`)
 - `GCP_PROJECT_ID`
 

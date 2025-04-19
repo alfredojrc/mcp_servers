@@ -1,4 +1,4 @@
-# 13_secrets_mcp (Port 5013)
+# 13_secrets_mcp (Port 8013)
 
 ## Purpose
 Provides a unified interface to retrieve secrets (API keys, passwords, etc.) from various configured backend secret management systems.
@@ -62,7 +62,7 @@ This service is critical for security.
 - **Auditing:** Ensure logging provides a clear audit trail of *who* or *what* requested *which* secret (by name) and *when*.
 
 ## Configuration
-- `MCP_PORT=5013`
+- `MCP_PORT=8013`
 - **Per-Backend Configuration (Examples):**
   - `KEEPASS_DB_PATH` (Path to mounted .kdbx file)
   - `KEEPASS_PASSWORD_SECRET_PATH` (Path to Docker secret containing master password)

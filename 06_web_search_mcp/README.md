@@ -1,4 +1,4 @@
-# 06_web_search_mcp (Port 5006)
+# 06_web_search_mcp (Port 8006)
 
 ## Purpose
 Provides tools for performing web searches using various search engines or APIs.
@@ -42,7 +42,7 @@ Primarily read-only interaction with external search APIs.
 - **Rate Limiting:** Be mindful of API rate limits; implement client-side throttling if necessary.
 
 ## Configuration
-- `MCP_PORT=5006`
+- `MCP_PORT=8006`
 - `GOOGLE_API_KEY_SECRET_PATH`
 - `GOOGLE_CSE_ID`
 - `BING_API_KEY_SECRET_PATH`

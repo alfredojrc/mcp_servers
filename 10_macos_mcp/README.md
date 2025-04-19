@@ -1,4 +1,4 @@
-# 10_macos_mcp (Port 5010)
+# 10_macos_mcp (Port 8010)
 
 ## Purpose
 Provides secure, controlled access to execute commands and interact with the filesystem on target macOS systems, similar to the Linux CLI server.
@@ -55,7 +55,7 @@ Adheres strictly to [Operating Principles](../README.md#operating-principles).
 - **SSH Security:** Keys, secure storage (Docker secrets), known_hosts.
 
 ## Configuration
-- `MCP_PORT=5010`
+- `MCP_PORT=8010`
 - `ALLOWED_COMMANDS`
 - `ALLOWED_READ_PATHS`
 - `ALLOWED_WRITE_PATHS`

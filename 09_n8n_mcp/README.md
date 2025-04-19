@@ -1,4 +1,4 @@
-# 09_n8n_mcp (Port 5009)
+# 09_n8n_mcp (Port 8009)
 
 ## Purpose
 Provides tools for interacting with an n8n instance to manage and trigger workflows.
@@ -49,7 +49,7 @@ Interacts with an automation platform.
 - **Network Security:** Ensure the n8n API endpoint is appropriately secured.
 
 ## Configuration
-- `MCP_PORT=5009`
+- `MCP_PORT=8009`
 - `N8N_API_URL` (URL of the n8n instance API)
 - `N8N_API_KEY_SECRET_PATH` (Path to mounted Docker secret for API key)
 

@@ -16,7 +16,7 @@ COPY . .
 RUN chmod +x /workspace/entrypoint.sh
 
 # Expose the MCP host port
-EXPOSE 5000
+EXPOSE 8000
 
 # Set the entrypoint script
 ENTRYPOINT ["/workspace/entrypoint.sh"] 

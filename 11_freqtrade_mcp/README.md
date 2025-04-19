@@ -1,4 +1,4 @@
-# 11_freqtrade_mcp (Port 5011)
+# 11_freqtrade_mcp (Port 8011)
 
 ## Purpose
 Provides tools for interacting with a Freqtrade trading bot instance via its API.
@@ -51,7 +51,7 @@ Interacts with a live trading system.
 - **Network Security:** Ensure the Freqtrade API endpoint is appropriately secured (e.g., HTTPS, firewall rules).
 
 ## Configuration
-- `MCP_PORT=5011`
+- `MCP_PORT=8011`
 - `FREQTRADE_API_URL` (URL of the Freqtrade API endpoint)
 - `FREQTRADE_API_USER`
 - `FREQTRADE_API_PASSWORD_SECRET_PATH` (Path to mounted Docker secret)

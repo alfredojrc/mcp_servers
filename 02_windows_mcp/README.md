@@ -1,4 +1,4 @@
-# 02_windows_mcp (Port 5002)
+# 02_windows_mcp (Port 8002)
 
 ## Purpose
 Provides secure, controlled access to execute PowerShell commands and interact with target Windows systems.
@@ -59,15 +59,10 @@ Adheres strictly to [Operating Principles](../README.md#operating-principles).
 - **Least Privilege:** Run WinRM endpoints and execute commands with minimal necessary user privileges.
 
 ## Configuration
-- `MCP_PORT=5002`
+- `MCP_PORT=8002`
 - `ALLOWED_COMMANDS` (PowerShell commands)
 - `ALLOWED_READ_PATHS`
 - `ALLOWED_WRITE_PATHS`
 - `WINRM_HOSTS`
 - `WINRM_USER`
-- `WINRM_PASSWORD_SECRET_PATH`
-- `WINRM_TRANSPORT` (e.g., `ntlm`, `kerberos`, `ssl`)
-
-## Observability
-- **Logging:** Adheres to project JSON standard, includes `correlation_id`.
-- **Metrics:** Implement `os.windows.getMetrics()`.
+- `

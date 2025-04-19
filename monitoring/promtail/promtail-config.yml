@@ -1,0 +1,30 @@
+server:
+  http_listen_port: 9080 # Port for Promtail's own metrics/API
+  grpc_listen_port: 0 # Disable gRPC
+
+positions:
+  filename: /var/lib/promtail/positions/positions.yaml # Path inside volume to store read positions
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push # URL of the Loki service within Docker network
+
+scrape_configs:
+- job_name: docker
+  docker_sd_configs:
+    - host: unix:///var/run/docker.sock
+      refresh_interval: 5s
+      # Only watch containers on the mcp-network (adjust if your network name differs)
+      filters:
+        - name: network
+          values: [mcp-network]
+  relabel_configs:
+    # Use the compose service name as the 'job' label for logs
+    - source_labels: ['__meta_docker_compose_service']
+      target_label: 'job'
+    # Use the compose service name also as the 'service' label
+    - source_labels: ['__meta_docker_compose_service']
+      target_label: 'service'
+    # Use the container name as the 'instance' label
+    - source_labels: ['__meta_docker_container_name']
+      regex: '/?(.*)'
+      target_label: 'instance' 

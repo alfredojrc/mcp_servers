@@ -115,6 +115,7 @@ This repository contains a Docker Compose–based multi-agent system powered by 
    - [Central Orchestrator (`00_master_mcp`)](#central-orchestrator-00_master_mcp)
    - [Specialized MCP Service Containers](#specialized-mcp-service-containers)
    - [CMDB Service (`12_cmdb_mcp`)](#cmdb-service-12_cmdb_mcp)
+   - [Secrets Management Service (`13_secrets_mcp`)](#secrets-management-service-13_secrets_mcp)
 4. [Available MCP Services](#available-mcp-services)
 5. [Operating Principles](#operating-principles)
 6. [Observability](#observability)
@@ -185,6 +186,11 @@ For a Kubernetes reference implementation, see [mcp-server-kubernetes](https://g
 - **External CMDB Integration:** Includes tools to query external systems like ServiceNow.
 - **Purpose:** Acts as a supplementary source of information for the orchestrator and other services. Dynamic data (like current IP addresses) should still be verified by operational servers (e.g., `01_linux_cli_mcp`, `03_azure_mcp`).
 
+### Secrets Management Service (`13_secrets_mcp`)
+- Provides a centralized interface for retrieving secrets (API keys, passwords, certificates).
+- **Backends:** Can be configured to fetch secrets from various sources like local KeePass files (with caveats regarding secure unlocking), Azure Key Vault, Google Secret Manager, HashiCorp Vault, or environment variables.
+- **Purpose:** Abstracts secret storage details from consuming services and allows for centralized access control.
+
 ## Available MCP Services
 
 | Service Name            | Port | Description                       |
@@ -202,6 +208,7 @@ For a Kubernetes reference implementation, see [mcp-server-kubernetes](https://g
 | `10_macos_mcp`          | 5010 | macOS system operations           |
 | `11_freqtrade_mcp`      | 5011 | Freqtrade trading operations      |
 | `12_cmdb_mcp`           | 5012 | Configuration Management Database |
+| `13_secrets_mcp`        | 5013 | Secrets Management Interface      |
 
 ## Operating Principles
 
@@ -221,6 +228,7 @@ See each service's README for specific implementation details.
 
 ## Observability
 
+- **Monitoring Stack:** A Prometheus, Grafana, and Loki stack is included in the `docker-compose.yml` (in the `monitoring/` directory) for collecting and visualizing metrics and logs. Services should expose metrics on port `9091`.
 - **Structured Logging:** All services should implement JSON logging to stdout/stderr, including `timestamp`, `service_name`, `severity`, `message`, and `correlation_id`.
 - **Correlation ID:** The `00_master_mcp` should generate a unique ID for each incoming request/task and pass it down to downstream services, which should include it in their logs.
 - **Basic Metrics:** Each service should expose basic metrics (e.g., request counts, errors) via an MCP tool (`getMetrics`) or a standard endpoint (e.g., `/metrics` for Prometheus).
@@ -264,11 +272,13 @@ docker-compose up --build -d
 
 See [`ports.md`](./ports.md) for detailed container→host port mappings.
 
+**Note:** When adding new services or changing port assignments in `docker-compose.yml`, please ensure the [`ports.md`](./ports.md) file is updated accordingly to maintain accurate documentation.
+
 ## Naming Conventions
 
 - **Containers/Services:** Use numeric prefixes (`NN_`) matching directories (e.g., `01_linux_cli_mcp`).
 - **MCP Tools:** `verbNoun` (e.g., `createVm`, `listPods`).
-- **Ports:** Align service index with port offset (0→5000, 1→5001, …, 12→5012).
+- **Ports:** Align service index with port offset (0→5000, 1→5001, …, 13→5013).
 
 ## Evaluation & Testing
 

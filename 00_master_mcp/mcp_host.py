@@ -22,6 +22,8 @@ DEFAULT_SERVERS = {
     "workflows.n8n":  "http://09_n8n_mcp:5009",
     "os.macos":       "http://10_macos_mcp:5010",
     "trading.freq":   "http://11_freqtrade_mcp:5011",
+    "cmdb":           "http://12_cmdb_mcp:5012",
+    "secrets":        "http://13_secrets_mcp:5013",
 }
 
 # Allow overriding individual server URLs via environment variables if needed

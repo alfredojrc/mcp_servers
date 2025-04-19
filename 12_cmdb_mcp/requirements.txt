@@ -1,0 +1,9 @@
+mcp>=0.6.0
+
+# Optional: For local CMDB backend
+pandas>=2.0.0 # For CSV handling
+# sqlalchemy>=2.0.0 # For SQLite or other DBs via SQLAlchemy
+
+# Optional: For ServiceNow integration
+requests>=2.28.0
+# pysnow>=0.7.0 # Or other ServiceNow library 

@@ -85,4 +85,5 @@ Environment variables needed might include:
 ## Observability
 
 -   **Logging:** Adheres to the project's structured JSON logging standard, including `correlation_id` received from the orchestrator.
--   **Metrics:** Should implement a tool `os.linux.cli.getMetrics()` returning basic counters (e.g., commands run, files read/written, errors).
+-   **Metrics:** Implements a Prometheus metrics endpoint on port `9091` (configurable via `METRICS_PORT` env var). Exposes metrics like `mcp_tool_latency_seconds`, `mcp_tool_calls_total`, and `mcp_tool_errors_total` labeled by `tool_name`.
+-   Should implement a tool `os.linux.cli.getMetrics()` returning basic counters (e.g., commands run, files read/written, errors).

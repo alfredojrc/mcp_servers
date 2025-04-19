@@ -74,6 +74,7 @@ DEFAULT_SERVERS = {
     "os.macos":       "http://10_macos_mcp:5010",
     "trading.freq":   "http://11_freqtrade_mcp:5011",
     "cmdb":           "http://12_cmdb_mcp:5012",
+    "secrets":        "http://13_secrets_mcp:5013",
 }
 
 host = FastMCPHost(name="master", port=5000)
@@ -138,10 +139,14 @@ master
  │  └─ n8n.*         (09_n8n_mcp)
  ├─ trading
  │  └─ freq.*        (11_freqtrade_mcp)
- └─ cmdb              (12_cmdb_mcp)
-    ├─ local.*       # Tools for local CSV/SQLite CMDB
-    └─ servicenow.*  # Tools for ServiceNow integration
+ ├─ cmdb              (12_cmdb_mcp)
+ │  ├─ local.*       # Tools for local CSV/SQLite CMDB
+ │  └─ servicenow.*  # Tools for ServiceNow integration
+ └─ secrets           (13_secrets_mcp)
+    ├─ keepass.*     # Tools for KeePass backend
+    ├─ azurekv.*     # Tools for Azure Key Vault backend
+    └─ gcp_sm.*      # Tools for Google Secret Manager backend
 ```
 
-*   Each leaf node represents a tool (e.g., `os.linux.ceph.getStatus`, `cmdb.local.getServerInfo`).
+*   Each leaf node represents a tool (e.g., `os.linux.ceph.getStatus`, `cmdb.local.getServerInfo`, `secrets.keepass.getEntry`).
 *   Implementation: Adjust `SERVERS` keys in `

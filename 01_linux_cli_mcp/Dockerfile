@@ -20,6 +20,8 @@ RUN chmod +x /workspace/entrypoint.sh
 
 # Expose the MCP server port
 EXPOSE 5001
+# Expose the Prometheus metrics port
+EXPOSE 9091
 
 # Set the entrypoint script
 ENTRYPOINT ["/workspace/entrypoint.sh"] 

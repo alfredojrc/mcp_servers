@@ -1,0 +1,2 @@
+mcp>=0.6.0 # Core Model Context Protocol library
+paramiko>=3.0.0 # Optional: For SSH connections to remote hosts 

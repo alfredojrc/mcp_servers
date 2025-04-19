@@ -26,6 +26,80 @@ from queue import Queue
 # Load environment variables
 load_dotenv()
 
+# Define Tool Schemas (Example - adapt inputSchema as needed)
+K8S_TOOLS = [
+    {
+        "name": "list_namespaces",
+        "description": "List all Kubernetes namespaces",
+        "inputSchema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "list_pods",
+        "description": "List pods in a specific Kubernetes namespace",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "namespace": {"type": "string", "description": "Namespace to list pods from (default: default)"}
+            },
+        },
+    },
+    {
+        "name": "get_pod_details",
+        "description": "Get details for a specific pod",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Name of the pod"},
+                "namespace": {"type": "string", "description": "Namespace of the pod"},
+            },
+            "required": ["name", "namespace"],
+        },
+    },
+    {
+        "name": "get_pod_logs",
+        "description": "Get logs from a specific pod",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Name of the pod"},
+                "namespace": {"type": "string", "description": "Namespace of the pod"},
+                "container": {"type": "string", "description": "Optional: Specific container name"},
+                "tail_lines": {"type": "integer", "description": "Optional: Number of lines to fetch from the end"}
+            },
+            "required": ["name", "namespace"],
+        },
+    },
+    # Add other tools based on /mcp POST actions and /cluster routes
+    {
+        "name": "get_template",
+        "description": "Get a Kubernetes resource template",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Name of the template"},
+                "format": {"type": "string", "enum": ["yaml", "json"], "description": "Format (yaml or json, default: yaml)"}
+            },
+            "required": ["name"]
+        }
+    },
+    {
+        "name": "list_templates",
+        "description": "List available Kubernetes resource templates",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+    {
+        "name": "search_docs",
+        "description": "Search Kubernetes documentation and API reference",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Search query"}
+            },
+            "required": ["query"]
+        }
+    }
+]
+
 # Setup logging
 if not os.path.exists('logs'):
     os.makedirs('logs')
@@ -175,7 +249,7 @@ class MCPEventStream:
                 listener.put(event)
 
 # Initialize event stream
-event_stream = MCPEventStream()
+# event_stream = MCPEventStream() # REMOVE - Simplify SSE handler
 
 def fetch_k8s_docs() -> None:
     """
@@ -200,46 +274,62 @@ def fetch_k8s_docs() -> None:
         logger.error(f"Error fetching K8s docs: {str(e)}")
 
 # SSE endpoint for Cursor IDE integration
-@app.route('/events')
+@app.route('/sse')
+@app.route('/mcp/sse')
 def sse_events():
     """
-    Server-Sent Events endpoint for Cursor IDE.
+    Server-Sent Events endpoint for MCP clients like Cursor IDE.
     """
     def generate_events():
-        # Create a queue for this client
-        q = Queue()
+        # Create a queue for this client # REMOVE
+        # q = Queue() # REMOVE
         
-        # Register with event manager
-        event_stream.add_listener(q)
+        # Register with event manager # REMOVE
+        # event_stream.add_listener(q) # REMOVE
         
         try:
-            # Send a welcome event
-            welcome_data = {
-                "type": "connected", 
-                "data": {
-                    "server": "Kubernetes MCP Server",
-                    "k8s_enabled": k8s_enabled
-                }
+            # Send initial tool list notification immediately upon connection
+            tool_list_notification = {
+                "jsonrpc": "2.0",
+                "method": "mcp/toolsAvailable", # Hypothetical, based on analysis
+                "params": {"tools": K8S_TOOLS if k8s_enabled else []}
             }
-            yield f"data: {json.dumps(welcome_data)}\n\n"
-            
-            # Keep connection alive until client disconnects
+            yield f"data: {json.dumps(tool_list_notification)}\n\n"
+
+            # Keep connection alive and send keepalives directly (no queue)
             while True:
-                # Send keepalive every 30 seconds if no events
-                try:
-                    event = q.get(timeout=30)
-                    yield f"data: {json.dumps(event)}\n\n"
-                except:
-                    # Send keepalive
-                    yield f"data: {json.dumps({'type': 'keepalive'})}\n\n"
-        finally:
-            # Cleanup when client disconnects
-            event_stream.remove_listener(q)
+                # Send keepalive every 15 seconds if no events # Simplified loop
+                # try: # REMOVE try/except for queue
+                    # event = q.get(timeout=15) # REMOVE queue logic
+                    # yield f"data: {json.dumps(event)}\n\n" # REMOVE queue logic
+                # except: # REMOVE try/except for queue
+                    
+                    # Use time.sleep (gevent should monkey-patch this)
+                    time.sleep(15)
+                    
+                    # Send keepalive as a JSON-RPC notification with an event name
+                    keepalive_notification = {
+                        "jsonrpc": "2.0",
+                        "method": "mcp/keepalive", # Use a conventional method name
+                        "params": {}
+                    }
+                    # Add explicit event name for SSE
+                    yield f"event: mcp/keepalive\ndata: {json.dumps(keepalive_notification)}\n\n"
+        except GeneratorExit: # Handle client disconnect more explicitly
+            print("INFO: Client disconnected from SSE stream.")
+        except Exception as e:
+            print(f"ERROR: Exception in SSE generator: {e}")
+        # finally:
+            # Cleanup when client disconnects # REMOVE queue logic
+            # event_stream.remove_listener(q) # REMOVE queue logic
     
     # Set up the SSE response with proper headers
+    response_mimetype = 'text/event-stream' # Define mimetype explicitly
+    # logger.info(f"Setting SSE response mimetype to: {response_mimetype}") # Log the mimetype
+    print(f"INFO: Setting SSE response mimetype to: {response_mimetype}") # Use print for direct output
     return Response(
         generate_events(),
-        mimetype='text/event-stream',
+        mimetype=response_mimetype, # Use the variable
         headers={
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
@@ -263,6 +353,7 @@ def mcp_request():
     logger.debug(f"Received MCP request: {request_type} (ID: {request_id})")
     
     if request_type == 'ping':
+        logger.debug(f"Received MCP request: {request_type} (ID: {request_id})")
         return jsonify({
             "type": "pong",
             "id": request_id,
@@ -274,6 +365,7 @@ def mcp_request():
         })
     
     elif request_type == 'initialize':
+        logger.debug(f"Received MCP request: {request_type} (ID: {request_id})")
         # Cursor sends this when first connecting
         return jsonify({
             "type": "initialized",
@@ -292,6 +384,7 @@ def mcp_request():
         })
     
     elif request_type == 'shutdown':
+        logger.debug(f"Received MCP request: {request_type} (ID: {request_id})")
         # Cursor is disconnecting
         return jsonify({
             "type": "shutdown_result",
@@ -300,6 +393,7 @@ def mcp_request():
         })
     
     elif request_type == 'k8s_query':
+        logger.debug(f"Received MCP request: {request_type} (ID: {request_id})")
         if not k8s_enabled:
             return jsonify({
                 "type": "error",
@@ -336,9 +430,6 @@ def mcp_request():
             else:
                 result = {"status": "error", "message": "Missing name or namespace"}
         
-        # Broadcast the event to all listeners
-        event_stream.broadcast_event('k8s_update', result)
-        
         return jsonify({
             "type": "k8s_result",
             "id": request_id,
@@ -346,6 +437,7 @@ def mcp_request():
         })
     
     elif request_type == 'get_template':
+        logger.debug(f"Received MCP request: {request_type} (ID: {request_id})")
         template_name = data.get('data', {}).get('name')
         format_type = data.get('data', {}).get('format', 'yaml')
         
@@ -378,6 +470,7 @@ def mcp_request():
         })
     
     elif request_type == 'list_templates':
+        logger.debug(f"Received MCP request: {request_type} (ID: {request_id})")
         return jsonify({
             "type": "templates_list",
             "id": request_id,
@@ -387,6 +480,7 @@ def mcp_request():
         })
     
     elif request_type == 'search_docs':
+        logger.debug(f"Received MCP request: {request_type} (ID: {request_id})")
         query = data.get('data', {}).get('query', '')
         if not query:
             return jsonify({
@@ -433,7 +527,18 @@ def mcp_request():
             }
         })
     
+    # --- ADD tools/list Method Handler ---    
+    elif request_type == 'tools/list':
+        logger.info(f"Received tools/list request (ID: {request_id})")
+        # Return the list of tools defined earlier
+        return jsonify({
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": {"tools": K8S_TOOLS if k8s_enabled else []}
+        })
+
     # Default response for unknown request types
+    logger.warning(f"Received unknown MCP request type: {request_type} (ID: {request_id})")
     return jsonify({
         "type": "error",
         "id": request_id,
@@ -457,7 +562,7 @@ def index() -> str:
             "status": "/status",
             "templates": "/templates",
             "search": "/search?q=<query>",
-            "events": "/events",
+            "sse": "/sse",
             "mcp": "/mcp",
             "cluster": "/cluster" if k8s_enabled else None
         }
@@ -979,4 +1084,4 @@ if __name__ == '__main__':
     
     # Start Flask server
     port = int(os.environ.get('WEBCONTROL_PORT', 5001))
-    app.run(host='0.0.0.0', port=port, debug=True, threaded=True) 
+    app.run(host='0.0.0.0', port=port, debug=False) 

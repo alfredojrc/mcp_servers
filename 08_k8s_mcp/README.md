@@ -1,14 +1,75 @@
-# Kubernetes MCP Server
+# 08_k8s_mcp (Port 5008)
 
-This is a Mesh Configuration Protocol (MCP) server for Kubernetes documentation, APIs, and references.
+## Purpose
+Provides tools for interacting with Kubernetes clusters using `kubectl` or Kubernetes client libraries.
 
-## Overview
+Tools are organized under the `infra.k8s.*` namespace.
 
-This server provides access to Kubernetes documentation, including:
-- Official Kubernetes documentation
-- Kubernetes API references
-- Search functionality for Kubernetes resources
-- Kubernetes cluster management capabilities
+Reference implementation: [Flux159/mcp-server-kubernetes](https://github.com/Flux159/mcp-server-kubernetes)
+
+## Namespaced Tools (Examples)
+
+- **`infra.k8s.cluster.*`**:
+  - `getContexts() -> list[str]`
+  - `getCurrentContext() -> str`
+  - `switchContext(contextName: str)` (Requires approval)
+- **`infra.k8s.pods.*`**:
+  - `listPods(namespace: str | None = None, allNamespaces: bool = False) -> list[dict]`
+  - `getPod(name: str, namespace: str) -> dict`
+  - `getPodLogs(name: str, namespace: str, tail: int = -1, follow: bool = False) -> str`
+  - `deletePod(name: str, namespace: str)` (Requires approval)
+- **`infra.k8s.deployments.*`**:
+  - `listDeployments(namespace: str | None = None) -> list[dict]`
+  - `scaleDeployment(name: str, namespace: str, replicas: int)` (Requires approval)
+- **`infra.k8s.helm.*`**:
+  - `listReleases(namespace: str | None = None) -> list[dict]`
+  - `installChart(name: str, chart: str, namespace: str, values: dict | None = None)` (Requires approval)
+  - `upgradeChart(name: str, chart: str, namespace: str, values: dict | None = None)` (Requires approval)
+  - `uninstallRelease(name: str, namespace: str)` (Requires approval)
+- **`infra.k8s.apply.*`**:
+  - `applyManifest(yamlContent: str, namespace: str | None = None)` (Requires approval)
+
+## Container Layout
+```
+08_k8s_mcp/
+├── Dockerfile
+├── entrypoint.sh
+├── requirements.txt     # Python MCP SDK, kubernetes client
+├── mcp_server.py
+├── .kube/config         # Mounted volume
+└── README.md
+```
+
+## Implementation Details
+- **Framework:** Python with `mcp`/`fastmcp`.
+- **Interaction:** Ideally uses the official `kubernetes` Python client library. Alternatively, can shell out to `kubectl` (less robust).
+- **Configuration:** Reads Kubeconfig from the standard location (`~/.kube/config`) inside the container, which should be mounted as a volume from the host.
+
+## Operating Principles & Security Considerations
+Interacts with potentially production Kubernetes clusters.
+
+1.  **OS Discovery:** N/A (Applies to K8s API/nodes, not this server).
+2.  **Backup:** K8s state is managed by etcd; backups are a cluster-level concern. Manifests should be version controlled.
+3.  **Approval for Modifications:** Required for *any* action that modifies cluster state: switching context, deleting pods, scaling, applying manifests, Helm installs/upgrades/uninstalls.
+4.  **Read-Only Allowed:** Listing resources (pods, deployments, releases, contexts), getting logs, describing resources.
+5.  **Logging:** Log all API calls/`kubectl` commands, parameters, and results/errors using structured logging.
+6.  **Shell Consistency:** N/A unless shelling out to `kubectl`.
+7.  **Sensitive File Access:** Only reads the mounted Kubeconfig.
+8.  **Interactive Commands:** N/A.
+9.  **Critical Actions:** Applying manifests, Helm operations, deletions are critical.
+
+**Additional Security:**
+- **Kubeconfig Security:** Ensure the host's Kubeconfig file has appropriate permissions. Consider using context-specific Kubeconfigs with least privilege if possible.
+- **RBAC:** The permissions granted by the Kubeconfig context determine what the server can do. Use RBAC within Kubernetes to limit the service account or user associated with the Kubeconfig.
+
+## Configuration
+- `MCP_PORT=5008`
+- `WEBCONTROL_PORT=5008` (Internal port the service listens on)
+- `KUBECONFIG=/root/.kube/config` (or path inside container where config is mounted)
+
+## Observability
+- **Logging:** Adheres to project JSON standard, includes `correlation_id`.
+- **Metrics:** Implement `infra.k8s.getMetrics()`.
 
 ## Kubernetes Cluster Management Features
 

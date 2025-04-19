@@ -1,23 +1,38 @@
 services:
-  k8s-mcp:
+  00_master_mcp:
     build:
-      context: ./k8s_mcp
+      context: ./00_master_mcp
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - MCP_PORT=5000
+    volumes:
+      - ./secrets:/secrets:ro
+    networks:
+      - mcp-network
+    restart: unless-stopped
+
+  08_k8s_mcp:
+    build:
+      context: ./08_k8s_mcp
       dockerfile: Dockerfile
     privileged: true
     volumes:
-      - ./k8s_mcp/.WebControl:/root/.WebControl
+      - ./08_k8s_mcp/.WebControl:/root/.WebControl
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./k8s_mcp:/workspace
+      - ./08_k8s_mcp:/workspace
       - ~/.kube:/root/.kube
     ports:
-      - "5001:5001"
+      - "5008:5008"
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_APP=main.py
       - FLASK_ENV=development
-      - WEBCONTROL_PORT=5001
+      - WEBCONTROL_PORT=5008
       - WEBCONTROL_AUTO_START=true
       - WEBCONTROL_WAIT_TIME=30
+      - MCP_PORT=5008
     restart: unless-stopped
     networks:
       - mcp-network
@@ -26,6 +41,35 @@ services:
     security_opt:
       - seccomp:unconfined
     user: root
+
+  01_linux_cli_mcp:
+    build:
+      context: ./01_linux_cli_mcp
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - MCP_PORT=5001
+      # TODO: Define allowed commands and paths based on security needs
+      - ALLOWED_COMMANDS=ls,cat,grep,ps,df,echo,stat,head,tail,find # Example safe commands
+      - ALLOWED_READ_PATHS=/etc:/var/log:/tmp:/home # Example read paths
+      - ALLOWED_WRITE_PATHS=/tmp # Example write path
+      # Uncomment and configure if using SSH to remote hosts:
+      # - SSH_HOSTS=host1.example.com,host2.example.com
+      # - SSH_USER=your_ssh_user
+      # - SSH_KEY_SECRET_PATH=/secrets/linux_ssh_key # Path inside container to SSH private key
+    volumes:
+      # Mount secrets read-only
+      - ./secrets:/secrets:ro
+      # Example: If managing Docker host, mount socket (requires privileged=true)
+      # - /var/run/docker.sock:/var/run/docker.sock
+      # Example: If managing remote hosts via SSH key
+      # - ./secrets/linux_ssh_key:/secrets/linux_ssh_key:ro
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    # Add privileged: true ONLY if managing the Docker host via socket mount
+    # privileged: true 
 
 networks:
   mcp-network:

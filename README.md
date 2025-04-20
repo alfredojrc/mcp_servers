@@ -282,7 +282,13 @@ See [`ports.md`](./ports.md) for detailed container→host port mappings.
 
 ## Evaluation & Testing
 
-- **Test Suite:** A suite of end-to-end test scenarios should be developed (e.g., in `tests/`) to verify common workflows.
+- **Test Suite:** Unit and integration tests are located in the `./tests` directory, mirroring the service structure (e.g., `./tests/00_master_mcp/`).
+- **Running Tests:** To run all tests, execute the main test runner script from the project root:
+  ```bash
+  python3 run_tests.py
+  ```
+  Ensure the required MCP services (like `00_master_mcp`) are running in Docker before executing the tests.
+- **Test Structure:** Tests are implemented using Python's built-in `unittest` framework. Each `test_*.py` file contains test cases for a specific service or functionality.
 - **KPIs:** Define Key Performance Indicators (e.g., task success rate, latency) for monitoring.
 
 ## References

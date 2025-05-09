@@ -85,17 +85,6 @@ class LoggingMiddleware:
         else:
             await self.app(scope, receive, send)
 
-# Create our web app
-web_app = Starlette(
-    routes=[
-        Route("/", homepage),
-        Route("/api/status", status),
-    ],
-    middleware=[
-        Middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-    ]
-)
-
 # Create the master orchestrator server with a name and description
 mcp = FastMCP(
     name="Master Orchestrator", 
@@ -150,30 +139,18 @@ def greeting_prompt(user_name: str):
 # mcp.mount("linux", linux_mcp)
 
 # Customize the MCP server settings
-mcp.settings.sse_path = "/sse"  # Relative path within the mount
-mcp.settings.message_path = "/"  # Relative path within the mount
+mcp.settings.sse_path = "/sse"  # Running at root, use default path
+mcp.settings.message_path = "/"  # Running at root, use default path
 
 # Get the MCP app
 mcp_app = mcp.sse_app()
 
-# Combined app
-app = Starlette(
-    routes=[
-        Mount("/mcp", mcp_app),  # Mount the MCP app at /mcp
-        Mount("/api", routes=[
-            Route("/status", status, methods=["GET"])
-        ]),
-        Route("/", homepage)
-    ],
-    middleware=[
-        Middleware(LoggingMiddleware),  # Add logging middleware
-        Middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-    ]
-)
+# Remove the Starlette app wrapper
+# app = Starlette(...)
 
 if __name__ == "__main__":
-    print(f"Starting MCP Host (mounted) on port {MCP_PORT}...")
-    # Run the server with the combined app
-    uvicorn_config = uvicorn.Config(app=app, host="0.0.0.0", port=MCP_PORT, log_level="debug")
+    print(f"Starting MCP Host directly on port {MCP_PORT}...")
+    # Run the server with the mcp_app directly
+    uvicorn_config = uvicorn.Config(app=mcp_app, host="0.0.0.0", port=MCP_PORT, log_level="info")
     server = uvicorn.Server(uvicorn_config)
     server.run() 

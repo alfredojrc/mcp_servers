@@ -1,4 +1,5 @@
 mcp>=0.6.0
+uvicorn>=0.20.0 # Added for direct Uvicorn execution
 
 # Backends - Install only what you need
 pykeepass>=4.0.3              # For KeePass (.kdbx) files

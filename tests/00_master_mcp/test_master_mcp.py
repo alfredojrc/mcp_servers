@@ -2,7 +2,7 @@
 import unittest
 import asyncio
 import os
-from fastmcp.client import Client, transports
+from fastmcp.client import Client # Only import Client
 # from mcp.errors import MCPError # Removed for now
 import logging
 
@@ -12,12 +12,9 @@ logger = logging.getLogger(__name__)
 
 # Get server details from environment or use defaults
 MCP_HOST_URL = os.getenv("MCP_MASTER_HOST_URL", "http://localhost:8000")
-MCP_BASE_PATH = "/mcp/"
-MCP_SSE_PATH = "/mcp/sse"
 
-# Construct full URLs
-BASE_URL = f"{MCP_HOST_URL.rstrip('/')}{MCP_BASE_PATH}"
-SSE_URL = f"{MCP_HOST_URL.rstrip('/')}{MCP_SSE_PATH}"
+# Construct full URL (now root)
+BASE_URL = f"{MCP_HOST_URL.rstrip('/')}/"
 
 class TestMasterMcp(unittest.TestCase):
 
@@ -43,38 +40,30 @@ class TestMasterMcp(unittest.TestCase):
 
     @classmethod
     async def connect_client(cls) -> Client | None:
-        """Attempt to connect to the MCP server."""
-        logger.info(f"Attempting to connect client. Base URL: {BASE_URL}, SSE URL: {SSE_URL}")
-        # Fastmcp client expects the *base* URL for POST and infers SSE
-        # Let's try providing the base URL directly first
+        """Attempt to connect to the MCP server using default client behavior."""
+        logger.info(f"Attempting to connect client using base URL: {BASE_URL}")
         try:
-            transport = transports.SSE(url=SSE_URL) # Manually specify SSE transport URL
-            client = Client(BASE_URL, transport=transport) # Base URL for POST
-            await client.__aenter__() # Manually enter context
+            # Provide the root URL to the client constructor
+            client = Client(BASE_URL)
+            await client.__aenter__() # Manually enter context to establish connection
             logger.info(f"Client connected successfully. Session ID: {client.session_id}")
             return client
         except Exception as e:
-            logger.error(f"Failed to connect MCP client: {e}")
-            # If manual transport fails, try default inference
-            try:
-                logger.info(f"Retrying connection with default transport inference using base: {BASE_URL}")
-                client = Client(BASE_URL)
-                await client.__aenter__()
-                logger.info(f"Client connected successfully on retry. Session ID: {client.session_id}")
-                return client
-            except Exception as e2:
-                 logger.error(f"Failed to connect MCP client on retry: {e2}")
-                 return None
-
+            logger.error(f"Failed to connect MCP client: {e}", exc_info=True)
+            return None
 
     @classmethod
     async def disconnect_client(cls):
         """Disconnect the client."""
         if cls.client:
             logger.info("Disconnecting client...")
-            await cls.client.__aexit__(None, None, None)
-            logger.info("Client disconnected.")
+            try:
+                await cls.client.__aexit__(None, None, None)
+                logger.info("Client disconnected.")
+            except Exception as e:
+                 logger.error(f"Error disconnecting client: {e}", exc_info=True)
 
+    # Test methods
     def test_tool_hello_world(self):
         """Test the hello_world tool."""
         logger.info("Testing tool: hello_world")
@@ -115,13 +104,7 @@ class TestMasterMcp(unittest.TestCase):
         """Test getting the greeting prompt template."""
         logger.info("Testing prompt: greeting_prompt")
         async def run_test():
-            # Note: Prompts are not directly executed by the client,
-            # we just retrieve the template structure.
             prompt_details = await self.client.get_prompt("greeting_prompt", {"user_name": "Tester"})
-            # The fastmcp client currently seems to execute prompts directly.
-            # Adjusting assertion based on observed behavior.
-            # self.assertIsInstance(prompt_details, list) # Expected based on MCP spec
-            # self.assertEqual(prompt_details[0]['role'], 'user')
             self.assertEqual(prompt_details, "Hello Tester, I'm the MCP Host server. How can I help you today?")
         self.loop.run_until_complete(run_test())
 

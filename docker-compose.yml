@@ -81,7 +81,7 @@ services:
       - MCP_PORT=8013
       # --- Backend Configuration - Enable and configure as needed --- 
       # KeePass:
-      - KEEPASS_DB_PATH=/secrets/keepass/MySecrets.kdbx # Path inside container
+      - KEEPASS_DB_PATH=/secrets/keepass/mcp_secrets.kdbx # Path inside container
       - KEEPASS_PASSWORD_SECRET_PATH=/run/secrets/keepass_master_password # Path to Docker secret file
       # - KEEPASS_KEYFILE_PATH=/secrets/keepass/MyKey.key # Optional key file path inside container
       
@@ -96,8 +96,8 @@ services:
       
       # Google Secret Manager (uses Application Default Credentials - configure one method):
       # Option 1: Service Account Key File (Mounted via volume/secret)
-      - GCP_PROJECT_ID=your-gcp-project-id
-      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp/gcp-sa-key.json # Path inside container
+      # - GCP_PROJECT_ID=your-gcp-project-id # Commented out
+      # - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp/gcp-sa-key.json # Commented out
       # Option 2: Workload Identity (If running in GKE/Cloud Run)
       # GCP_PROJECT_ID=your-gcp-project-id
       
@@ -105,15 +105,15 @@ services:
       # Mount secrets read-only
       - ./secrets:/secrets:ro 
       # Example: Mount KeePass DB read-only (adjust host path)
-      # - ./path/to/your/MySecrets.kdbx:/secrets/keepass/MySecrets.kdbx:ro 
+      - ./secrets/keepass/mcp_secrets.kdbx:/secrets/keepass/mcp_secrets.kdbx:ro 
       # Example: Mount GCP Service Account key read-only (adjust host path)
       # - ./path/to/your/gcp-sa-key.json:/secrets/gcp/gcp-sa-key.json:ro
       # Example: Mount KeePass key file if used
       # - ./path/to/your/MyKey.key:/secrets/keepass/MyKey.key:ro
-    # secrets: # Temporarily comment out until secrets are defined
-    #   # Define Docker secrets (these must exist or be defined below)
-    #   - keepass_master_password
-    #   - azure_sp_secret
+    secrets: 
+      # Define Docker secrets (these must exist or be defined below)
+      - keepass_master_password
+      # - azure_sp_secret
     networks:
       - mcp-network
     restart: unless-stopped
@@ -216,11 +216,11 @@ networks:
     driver: bridge
 
 # Define Docker secrets here if not managed externally
-# secrets:
-#   keepass_master_password:
-#     file: ./path/to/keepass_password.txt # Local file containing the password
-#   azure_sp_secret:
-#     file: ./path/to/azure_sp_secret.txt 
+secrets:
+  keepass_master_password:
+    file: ./secrets/keepass_master_password.txt # Local file containing the password
+  # azure_sp_secret:
+  #   file: ./path/to/azure_sp_secret.txt 
 
 # Define persistent volumes for monitoring data
 volumes:

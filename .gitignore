@@ -2,3 +2,4 @@
 venv
 secrets/keepass/mcp_secrets.kdbx
 secrets/keepass_master_password.txt
+.DS_Store

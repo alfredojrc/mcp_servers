@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     automake \
     libtool \
+    pkg-config \
     # libta-lib0 \ # No longer needed as we build from source
     # ta-lib-dev # Only if compiling TA-Lib from source and libta-lib0 is not enough
     # Add other system deps for ML libraries as needed, e.g.:
@@ -52,13 +53,12 @@ RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
     make install && \
     ldconfig && \
     cd .. && \
-    rm -rf ta-lib ta-lib-0.4.0-src.tar.gz && \
-    # Set PKG_CONFIG_PATH to help pip find the installed ta-lib C library
-    export PKG_CONFIG_PATH=/usr/lib/pkgconfig:$PKG_CONFIG_PATH && \
-    pip install --no-cache-dir TA-Lib # This should now find the compiled library
+    rm -rf ta-lib ta-lib-0.4.0-src.tar.gz
 
-# Install other requirements after TA-Lib
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python TA-Lib and then other requirements
+# Ensure PKG_CONFIG_PATH is set for the TA-Lib install command
+RUN PKG_CONFIG_PATH=/usr/lib/pkgconfig:$PKG_CONFIG_PATH pip install --no-cache-dir TA-Lib && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY . .

@@ -22,9 +22,18 @@ from flask_cors import CORS
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from queue import Queue
+from datetime import datetime as dt # Alias to avoid conflict
 
 # Load environment variables
 load_dotenv()
+
+# Add these imports for JSON logging
+import json
+
+# --- Health Check Endpoint (as per roadmap) ---
+@app.route("/health")
+async def health_check():
+    return jsonify({"status": "healthy", "service": "k8s-mcp", "timestamp": time.time()})
 
 # Define Tool Schemas (Example - adapt inputSchema as needed)
 K8S_TOOLS = [
@@ -100,16 +109,59 @@ K8S_TOOLS = [
     }
 ]
 
-# Setup logging
+# --- JSON Formatter Class ---
+class JSONFormatter(logging.Formatter):
+    def __init__(self, service_name, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.service_name = service_name
+
+    def format(self, record):
+        log_entry = {
+            "timestamp": dt.now().isoformat(),
+            "service": self.service_name,
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "correlation_id": getattr(record, 'correlation_id', None)
+        }
+        if record.exc_info:
+            log_entry['exception'] = self.formatException(record.exc_info)
+        if record.stack_info:
+            log_entry['stack_info'] = self.formatStack(record.stack_info)
+        # Add other standard fields if needed, e.g., name, pathname, lineno
+        log_entry['logger_name'] = record.name
+        log_entry['pathname'] = record.pathname
+        log_entry['lineno'] = record.lineno
+        return json.dumps(log_entry)
+
+# --- Logging Setup ---
+SERVICE_NAME_FOR_LOGGING = "k8s-mcp"
+
 if not os.path.exists('logs'):
     os.makedirs('logs')
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-handler = RotatingFileHandler('logs/k8s_mcp.log', maxBytes=10485760, backupCount=5)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+logger = logging.getLogger(__name__) # Get the module-specific logger
+logger.setLevel(logging.INFO) # Set level for this logger
+
+# Clear any existing handlers from this specific logger
+for handler in logger.handlers[:]:
+    logger.removeHandler(handler)
+
+# Create JSON formatter instance
+json_formatter = JSONFormatter(SERVICE_NAME_FOR_LOGGING)
+
+# StreamHandler for stdout (JSON)
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(json_formatter)
+logger.addHandler(stream_handler)
+
+# RotatingFileHandler for file logging (JSON)
+# Keep file logging as it was previously configured, but now with JSON format
+file_handler = RotatingFileHandler('logs/k8s_mcp.log', maxBytes=10485760, backupCount=5)
+file_handler.setFormatter(json_formatter)
+logger.addHandler(file_handler)
+
+# Ensure logs are not propagated to the root logger if it has other handlers
+logger.propagate = False 
 
 # Initialize Flask app
 app = Flask(__name__)

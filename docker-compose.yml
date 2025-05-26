@@ -4,14 +4,24 @@ services:
       context: ./00_master_mcp
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "${MCP_PORT_00:-8000}:8000"
     environment:
       - MCP_PORT=8000
+      # Environment variables for proxied service URLs
+      - MCP_PORT_01=${MCP_PORT_01:-5001}       # For 01_linux_cli_mcp
+      - MCP_PORT_08_K8S=${MCP_PORT_08_K8S:-5001} # For 08_k8s_mcp (runs on 5001)
+      - MCP_PORT_12=${MCP_PORT_12:-5012}       # For 12_cmdb_mcp
+      - MCP_PORT_13=${MCP_PORT_13:-8013}       # For 13_secrets_mcp
     volumes:
       - ./secrets:/secrets:ro
     networks:
       - mcp-network
     restart: unless-stopped
+    depends_on:
+      - 01_linux_cli_mcp
+      - 08_k8s_mcp
+      - 12_cmdb_mcp
+      - 13_secrets_mcp
 
   08_k8s_mcp:
     build:
@@ -143,6 +153,31 @@ services:
     # secrets: # Temporarily comment out until secrets are defined
     #   # Define Docker secrets (these must exist or be defined below)
     #   - servicenow_password
+    networks:
+      - mcp-network
+    restart: unless-stopped
+
+  14_aider_mcp:
+    build:
+      context: ./14_aider_mcp
+      dockerfile: Dockerfile
+    ports:
+      - "8014:8014"
+    environment:
+      - MCP_PORT=8014
+      - REPO_PATH=/workspace # Aider will operate on files in this path inside the container
+      # - OPENAI_API_KEY=${OPENAI_API_KEY:-your_openai_api_key_here} # Uncomment and set if needed by Aider
+      # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-your_anthropic_api_key_here} # Uncomment and set if needed by Aider
+      # - AIDER_MCP_VERBOSE=true # Uncomment for verbose logging from aider-mcp server
+    volumes:
+      # Mount a host directory into the container for Aider to access and modify files.
+      # Example: Mount the entire project directory ('.') to /workspace
+      - .:/workspace 
+      # If Aider needs git, ensure .git is accessible or init a repo in /workspace
+      # You might want to mount your ~/.gitconfig if aider needs it:
+      # - ~/.gitconfig:/root/.gitconfig:ro 
+      # Mount secrets if needed, e.g., for API keys if not passed via environment
+      - ./secrets:/secrets:ro 
     networks:
       - mcp-network
     restart: unless-stopped

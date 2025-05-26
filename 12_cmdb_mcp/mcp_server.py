@@ -4,6 +4,16 @@ from typing import Optional, List, Dict, Any
 
 from mcp.server.fastmcp import FastMCP
 
+# Add these imports
+import time
+from starlette.routing import Route
+from starlette.responses import JSONResponse
+import uvicorn
+
+# Add these imports for JSON logging
+import json
+from datetime import datetime as dt # Alias to avoid conflict
+
 # Optional imports based on chosen backends
 try:
     import pandas as pd
@@ -20,9 +30,43 @@ except ImportError:
 # except ImportError:
 #     pysnow = None
 
+# --- JSON Formatter Class ---
+class JSONFormatter(logging.Formatter):
+    def __init__(self, service_name, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.service_name = service_name
+
+    def format(self, record):
+        log_entry = {
+            "timestamp": dt.now().isoformat(),
+            "service": self.service_name,
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "correlation_id": getattr(record, 'correlation_id', None)
+        }
+        if record.exc_info:
+            log_entry['exception'] = self.formatException(record.exc_info)
+        if record.stack_info:
+            log_entry['stack_info'] = self.formatStack(record.stack_info)
+        # Add other standard fields if needed
+        log_entry['logger_name'] = record.name
+        log_entry['pathname'] = record.pathname
+        log_entry['lineno'] = record.lineno
+        return json.dumps(log_entry)
+
 # --- Logging Setup ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("12_cmdb_mcp")
+root_logger = logging.getLogger()
+for handler in root_logger.handlers[:]:
+    root_logger.removeHandler(handler)
+
+SERVICE_NAME_FOR_LOGGING = "cmdb-service"
+json_formatter = JSONFormatter(SERVICE_NAME_FOR_LOGGING)
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(json_formatter)
+root_logger.addHandler(stream_handler)
+root_logger.setLevel(logging.INFO)
+
+logger = logging.getLogger(__name__) # Module-specific logger, inherits root config
 
 # --- Configuration ---
 MCP_PORT = int(os.getenv("MCP_PORT", 5012))
@@ -89,6 +133,11 @@ def initialize_servicenow():
 
 initialize_local_cmdb()
 initialize_servicenow()
+
+# --- Health Check Endpoint ---
+async def health_check(request): # Starlette request argument
+    service_name = mcp_server.name if hasattr(mcp_server, 'name') else "cmdb-service" # Fallback for safety
+    return JSONResponse({"status": "healthy", "service": service_name, "timestamp": time.time()})
 
 # --- Tool Definitions ---
 
@@ -190,8 +239,36 @@ def get_metrics() -> dict:
 # --- Server Execution --- 
 if __name__ == "__main__":
     logger.info(f"Starting CMDB MCP Server (12_cmdb_mcp) on port {MCP_PORT}")
+
+    # Get the Starlette app from FastMCP
+    app = mcp_server.sse_app()
+
+    # Add the health check route
+    health_route_exists = any(r.path == "/health" for r in getattr(app, 'routes', []))
+    if not health_route_exists:
+        if not hasattr(app, 'routes') or not isinstance(app.routes, list):
+            logger.warning("Starlette app.routes is not a list, cannot append health route directly.")
+            if hasattr(app, 'router') and hasattr(app.router, 'routes') and isinstance(app.router.routes, list):
+                 app.router.routes.append(Route("/health", health_check))
+                 logger.info("Health check route added to app.router.routes.")
+            elif hasattr(app, 'routes') and isinstance(app.routes, list): 
+                 app.routes.append(Route("/health", health_check))
+                 logger.info("Health check route added to app.routes.")
+            else:
+                logger.error("Cannot add health check route: app.routes or app.router.routes list not found or not a list.")
+        else: 
+            app.routes.append(Route("/health", health_check))
+            logger.info("Health check route added to app.routes.")
+    else:
+        logger.info("Health check route already exists.")
+
     try:
-        mcp_server.run()
+        host = getattr(mcp_server.settings, 'host', "0.0.0.0")
+        log_level_setting = getattr(mcp_server.settings, 'log_level', "info")
+        log_level = str(log_level_setting).lower() if log_level_setting is not None else "info"
+
+        uvicorn.run(app, host=host, port=MCP_PORT, log_level=log_level)
+        
     except Exception as e:
         logger.critical(f"CMDB MCP Server failed to run: {e}", exc_info=True)
         exit(1) 

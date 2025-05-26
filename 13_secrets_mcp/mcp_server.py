@@ -1,6 +1,14 @@
 import os
 import logging
 from typing import Optional
+import time
+from starlette.routing import Route
+from starlette.responses import JSONResponse
+import uvicorn
+
+# Add these imports for JSON logging
+import json
+from datetime import datetime as dt # Alias to avoid conflict
 
 from mcp.server.fastmcp import FastMCP
 
@@ -26,9 +34,39 @@ except ImportError:
     secretmanager = None
     GoogleApiExceptions = None
 
+# --- JSON Formatter Class ---
+class JSONFormatter(logging.Formatter):
+    def __init__(self, service_name, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.service_name = service_name
+
+    def format(self, record):
+        log_entry = {
+            "timestamp": dt.now().isoformat(),
+            "service": self.service_name,
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "correlation_id": getattr(record, 'correlation_id', None)
+        }
+        if record.exc_info:
+            log_entry['exception'] = self.formatException(record.exc_info)
+        if record.stack_info:
+            log_entry['stack_info'] = self.formatStack(record.stack_info)
+        return json.dumps(log_entry)
+
 # --- Logging Setup ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("13_secrets_mcp")
+root_logger = logging.getLogger()
+for handler in root_logger.handlers[:]:
+    root_logger.removeHandler(handler)
+
+SERVICE_NAME_FOR_LOGGING = "secrets-service"
+json_formatter = JSONFormatter(SERVICE_NAME_FOR_LOGGING)
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(json_formatter)
+root_logger.addHandler(stream_handler)
+root_logger.setLevel(logging.INFO)
+
+logger = logging.getLogger(__name__) # Module-specific logger, inherits root config
 
 # --- Configuration --- 
 MCP_PORT = int(os.getenv("MCP_PORT", 8013))
@@ -112,6 +150,11 @@ def initialize_backends():
 initialize_backends()
 
 mcp_server = FastMCP(name="secrets-service", port=MCP_PORT)
+
+# --- Health Check Endpoint ---
+async def health_check(request): # Starlette request argument
+    service_name = mcp_server.name if hasattr(mcp_server, 'name') else "secrets-service" # Fallback for safety
+    return JSONResponse({"status": "healthy", "service": service_name, "timestamp": time.time()})
 
 @mcp_server.tool("secrets.getSecret")
 def get_secret(secretName: str, version: Optional[str] = None) -> Optional[str]:
@@ -221,26 +264,56 @@ def get_metrics() -> dict:
 
 # --- Server Execution --- 
 if __name__ == "__main__":
-    logger.info(f"Starting Secrets MCP Server (13_secrets_mcp) on port {MCP_PORT} using mcp_server.run()")
+    logger.info(f"Starting Secrets MCP Server (13_secrets_mcp) on port {MCP_PORT}")
+    
+    # Get the Starlette app from FastMCP
+    app = mcp_server.sse_app()
+
+    # Add the health check route
+    health_route_exists = any(r.path == "/health" for r in getattr(app, 'routes', []))
+    if not health_route_exists:
+        if not hasattr(app, 'routes') or not isinstance(app.routes, list):
+            logger.warning("Starlette app.routes is not a list, cannot append health route directly.")
+            if hasattr(app, 'router') and hasattr(app.router, 'routes') and isinstance(app.router.routes, list):
+                 app.router.routes.append(Route("/health", health_check))
+                 logger.info("Health check route added to app.router.routes.")
+            elif hasattr(app, 'routes') and isinstance(app.routes, list): 
+                 app.routes.append(Route("/health", health_check))
+                 logger.info("Health check route added to app.routes.")
+            else:
+                logger.error("Cannot add health check route: app.routes or app.router.routes list not found or not a list.")
+        else: 
+            app.routes.append(Route("/health", health_check))
+            logger.info("Health check route added to app.routes.")
+    else:
+        logger.info("Health check route already exists.")
+
     try:
-        mcp_server.run() # Call run() without reload, assuming it should block
+        host = getattr(mcp_server.settings, 'host', "0.0.0.0")
+        log_level_setting = getattr(mcp_server.settings, 'log_level', "info")
+        log_level = str(log_level_setting).lower() if log_level_setting is not None else "info"
+
+        uvicorn.run(app, host=host, port=MCP_PORT, log_level=log_level)
+
     except Exception as e:
         logger.critical(f"Secrets MCP Server failed to run: {e}", exc_info=True)
         exit(1)
-    logger.info("mcp_server.run() has exited.") # This should ideally not be reached if run() is blocking
+    # The original code below this point regarding server_started_successfully and the while True loop
+    # is now effectively replaced by the blocking uvicorn.run() call above.
+    # logger.info("mcp_server.run() has exited.") # This will only be reached if uvicorn.run() exits normally, or is not blocking.
 
-    if server_started_successfully:
-        logger.info("mcp_server.run() called. Assuming server is running in background or has exited.")
-        # If mcp_server.run() is non-blocking and starts a background process,
-        # keep the main script alive. Otherwise, this does nothing if run() was blocking.
-        try:
-            while True:
-                import time
-                time.sleep(60) # Keep main thread alive
-                logger.info("Main thread still alive in mcp_server.py...") # Log to show it's working
-        except KeyboardInterrupt:
-            logger.info("mcp_server.py: Main thread received KeyboardInterrupt. Exiting.")
-        finally:
-            logger.info("mcp_server.py: Main thread exiting.")
-    else:
-        logger.error("mcp_server.run() did not seem to start the server successfully or it exited immediately.") 
+    # The following logic was problematic as mcp_server.run() is typically blocking.
+    # It's removed because uvicorn.run() is now directly used and is blocking.
+    # if server_started_successfully:
+    #     logger.info("mcp_server.run() called. Assuming server is running in background or has exited.")
+    #     try:
+    #         while True:
+    #             import time
+    #             time.sleep(60) 
+    #             logger.info("Main thread still alive in mcp_server.py...") 
+    #     except KeyboardInterrupt:
+    #         logger.info("mcp_server.py: Main thread received KeyboardInterrupt. Exiting.")
+    #     finally:
+    #         logger.info("mcp_server.py: Main thread exiting.")
+    # else:
+    #     logger.error("mcp_server.run() did not seem to start the server successfully or it exited immediately.") 

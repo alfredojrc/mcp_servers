@@ -1,0 +1,45 @@
+# MCP Server for Freqtrade
+
+# Core MCP libraries
+fastmcp==2.2.0
+uvicorn==0.34.2
+httpx # For Freqtrade REST API calls
+
+# Freqtrade (latest stable recommended)
+freqtrade # e.g., ==2025.4 or check `pip search freqtrade`
+
+# Common Freqtrade dependencies (often bundled or core)
+pandas # Check Freqtrade's setup.py/pyproject.toml for version
+numpy # Check Freqtrade's setup.py/pyproject.toml for version
+TA-Lib # Requires pre-installation of TA-Lib C library. Consider using a pre-built wheel if available.
+
+# Hyperopt specific dependencies
+scikit-optimize>=0.9.0
+# Ensure other hyperopt dependencies are covered by freqtrade base or added here if needed
+
+# FreqAI specific dependencies
+# Core ML/Stats
+scikit-learn # Check freqtrade's requirements-freqai.txt for version
+statsmodels # Check freqtrade's requirements-freqai.txt for version
+joblib # Check freqtrade's requirements-freqai.txt for version
+cloudpickle # Check freqtrade's requirements-freqai.txt for version
+optuna # For hyperparameter optimization within FreqAI
+plotly # For plotting/visualization
+kaleido # For static image export with Plotly
+
+# ML Models (install based on usage)
+# lightgbm
+# xgboost
+# catboost # Note: May have platform-specific install requirements (e.g. ARM)
+# prophet
+
+# FreqAI Reinforcement Learning (optional, if used)
+# stable-baselines3
+# shimmy
+
+# FreqAI PyTorch (optional, if used for custom PyTorch models)
+# torch # Consider CPU or GPU specific versions (e.g., torch --index-url https://download.pytorch.org/whl/cpu)
+# torchaudio
+
+# Other potential utilities
+python-dotenv 

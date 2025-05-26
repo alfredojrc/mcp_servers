@@ -91,6 +91,7 @@ Replace the current basic master orchestrator with enhanced version.
   - Kept and namespaced local tools on the master orchestrator (e.g., `master_hello_world`).
 - [x] Updated `docker-compose.yml` for `00_master_mcp`:
   - Added environment variables (e.g., `MCP_PORT_01`, `MCP_PORT_08_K8S`) to configure proxied service URLs.
+    - Note: Ensured default ports in `docker-compose.yml` for `00_master_mcp`'s env vars like `MCP_PORT_01`, `MCP_PORT_08_K8S`, `MCP_PORT_12` point to the correct `80XX` service ports (e.g., `8001`, `8008`, `8012` respectively).
   - Added `depends_on` for the proxied services.
 
 ```bash
@@ -101,13 +102,48 @@ Replace the current basic master orchestrator with enhanced version.
 # Update docker-compose.yml to use new implementation # Done
 ```
 
+## MCP Implementation Guide Review & Compliance (Ongoing)
+
+Reviewed the "MCP Implementation Guide for Cursor IDE" (provided by user).
+Key actions taken based on the guide:
+
+### 1. Prometheus Metrics Standardization (Day 3 - Follow-up)
+- **FastMCP Services (`00_master_mcp`, `01_linux_cli_mcp`, `12_cmdb_mcp`, `13_secrets_mcp`):**
+  - Relied on FastMCP's built-in `/metrics` endpoint on the main service port.
+  - Removed separate Prometheus metrics server thread from `01_linux_cli_mcp/mcp_server.py`.
+  - Updated `monitoring/prometheus/prometheus.yml` to scrape these services on their main `MCP_PORT` at the `/metrics` path using `relabel_configs`.
+  - Ensured no redundant `METRICS_PORT` environment variables in `docker-compose.yml` for these services.
+- **Flask Service (`08_k8s_mcp`):**
+  - Current Prometheus scraping target (`08_k8s_mcp:9091`) remains unchanged as it's not a FastMCP service and may require its own metrics setup if a `/metrics` endpoint isn't already available on its main port or a dedicated metrics port.
+
+### 2. SSE/POST Endpoint Compatibility (Day 3 - Follow-up)
+- **Flask Service (`08_k8s_mcp`):**
+  - Aliased the `POST /mcp` endpoint to also listen on `POST /messages` in `08_k8s_mcp/main.py` for broader compatibility with SSE transport expectations where a separate endpoint for client-to-server messages might be assumed alongside a `GET /sse` endpoint.
+
+Further review of the guide will inform ongoing and future development tasks to ensure full compliance and adoption of best practices.
+
 ## Phase 1: Core Infrastructure (Week 2-3)
 
 ### Day 1-3: Enhanced Master Orchestrator
-1. Implement the `EnhancedMCPHost` class
-2. Add `MCPServiceClient` for inter-service communication
-3. Implement `WorkflowEngine` for multi-step operations
-4. Test basic service discovery and tool calling
+- [x] Implemented placeholder classes for `EnhancedMCPHost`, `MCPServiceClient`, and `WorkflowEngine` in `00_master_mcp/mcp_host.py`.
+  - `EnhancedMCPHost` initializes `WorkflowEngine` and `MCPServiceClient`.
+  - Registered a tool `orchestrator.executeWorkflow` with the master MCP instance.
+- [x] Implemented `MCPServiceClient` in `00_master_mcp/mcp_host.py` using `httpx`.
+  - Client is configured to communicate with the master orchestrator's own MCP endpoint for proxied calls.
+- [x] Implemented initial `WorkflowEngine` logic in `00_master_mcp/mcp_host.py`.
+  - Engine uses `MCPServiceClient` to call tools on proxied services via the master orchestrator.
+  - Includes basic sequential step execution and error handling (stops on first error).
+- [ ] Test `orchestrator.executeWorkflow` tool with a sample workflow to verify inter-service tool calls via the master proxy.
+  - [ ] Create a test script in `tests/00_master_mcp/`.
+  - [ ] Define a sample workflow involving calls to multiple services (e.g., linux, secrets, cmdb).
+  - [ ] Verify successful execution and error handling.
+- [x] Added `aicrusher` details to `12_cmdb_mcp/data/cmdb.csv`.
+- [x] Configured `01_linux_cli_mcp` in `docker-compose.yml` with SSH parameters (host, user, key path) and volume mount for the key.
+- [x] Updated `01_linux_cli_mcp/Dockerfile` to ensure `openssh-client` is installed (verified it was already present).
+- [x] Implemented `linux.sshExecuteCommand` tool in `01_linux_cli_mcp/mcp_server.py` to handle SSH connections and command execution using configured parameters.
+- [x] Documented SSH configuration and new tool in `01_linux_cli_mcp/README.md` and updated main `README.md`.
+- [ ] (Manual User Task) Place SSH private key in `./secrets/aicrusher_jeriko_id_rsa` and ensure public key is on `aicrusher`.
+- [ ] Test `linux.sshExecuteCommand` tool to connect to `aicrusher` and list `/home/jeriko/freqtrade_ai/`.
 
 ### Day 4-5: Security Framework
 1. Implement `SecurityManager` class
@@ -144,7 +180,44 @@ Replace the current basic master orchestrator with enhanced version.
 - [ ] Add workflow templates
 - [ ] Integration testing
 
-## Phase 3: Advanced Features (Week 6-8)
+## Phase 3: Specialized MCPs & Advanced Features (Week 6-8)
+
+### Freqtrade MCP with Hyperopt and FreqAI (New Service - Priority 4 / Parallel)
+- **Goal:** Create an MCP service to interact with and manage Freqtrade bots, including Hyperopt and FreqAI capabilities.
+- **Status:** Initial implementation complete.
+- **Details:**
+  - [x] Created `15_freqtrade_mcp/` directory with `Dockerfile`, `requirements.txt`, and `mcp_server.py`.
+  - [x] Implemented core MCP server structure in `15_freqtrade_mcp/mcp_server.py`:
+    - [x] Standard FastMCP setup with Uvicorn and JSON logging.
+    - [x] `call_freqtrade_api` helper for Freqtrade REST API interaction.
+    - [x] `/health` endpoint.
+  - [x] Populated knowledge base tools:
+    - [x] `freqtrade.knowledge.hyperoptBestPractices`
+    - [xx] `freqtrade.knowledge.freqAiOverview` (marked as double-x to indicate it's done, but typo in original, fixing)
+  - [x] Implemented API-based tools for Freqtrade interaction:
+    - [x] Bot status & control (getStatus, startBot, stopBot, pauseBot, stopBuy, reloadConfig, getBotHealth, getVersion, showConfig).
+    - [x] Financials (getBalance, getProfitSummary, getDailyStats, getPerformance, getTradesHistory, getTrade).
+    - [x] Pair & List Management (getWhitelist, getBlacklist, addToBlacklist, deleteFromBlacklist, getLocks, addLock, deleteLock).
+    - [x] Forcing Actions (forceEnter, forceExit).
+  - [x] Implemented placeholder CLI-based tools:
+    - [x] `freqtrade.cli.runHyperopt` (with common parameters).
+    - [x] `freqtrade.cli.freqaiTrain` (placeholder, needs CLI verification).
+  - [x] Updated `15_freqtrade_mcp/requirements.txt` with `httpx` and pinned versions.
+  - [x] Refined `15_freqtrade_mcp/Dockerfile` (non-root user, CMD, dependencies).
+  - [x] Created `15_freqtrade_mcp/user_data/` directory (with `.gitkeep`).
+  - [x] Created `15_freqtrade_mcp/config_bot.json` (basic Freqtrade bot config with API enabled).
+  - [x] Updated `docker-compose.yml`:
+    - [x] Added `freqtrade_bot_15` service (for the actual Freqtrade bot).
+    - [x] Added `15_freqtrade_mcp` service (for the MCP server).
+    - [x] Configured ports, volumes, environment variables (including `FREQTRADE_API_URL`), secrets (`freqtrade_api_password`), and dependencies.
+  - [x] Updated `00_master_mcp/mcp_host.py` to proxy `15_freqtrade_mcp` (added `trading.freqtrade` to `FOCUSED_DEFAULT_SERVERS` and corresponding env var to `docker-compose.yml` for master).
+  - [x] Created `tests/15_freqtrade_mcp/test_freqtrade_mcp.py` with a basic health check test.
+- **Next Steps:**
+  - [ ] Add `httpx` to `00_master_mcp/requirements.txt` (if not already there, due to `MCPServiceClient`). (Actually, this was for `00_master_mcp` for its own client, `15_freqtrade_mcp` already has it).
+  - [ ] Create `secrets/freqtrade_api_password.txt` with a strong password.
+  - [ ] Thoroughly test all implemented tools against a running `freqtrade_bot_15` instance.
+  - [ ] Refine `freqtrade.cli.freqaiTrain` tool based on Freqtrade CLI specifics for triggering training.
+  - [ ] Develop more comprehensive tests in `tests/15_freqtrade_mcp/test_freqtrade_mcp.py`.
 
 ### Workflow Templates
 ```python

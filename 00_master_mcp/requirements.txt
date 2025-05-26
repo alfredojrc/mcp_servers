@@ -2,3 +2,4 @@ mcp>=0.6.0  # Core Model Context Protocol library (check PyPI for latest stable)
 fastmcp>=2.0.0  # FastMCP library for easier MCP implementation
 # mcp-agent>=0.1.0 # Uncomment if/when implementing complex agent logic with mcp-agent
 # python-dotenv # Optional: if you prefer loading env vars from a .env file 
+httpx 

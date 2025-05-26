@@ -8,10 +8,11 @@ services:
     environment:
       - MCP_PORT=8000
       # Environment variables for proxied service URLs
-      - MCP_PORT_01=${MCP_PORT_01:-5001}       # For 01_linux_cli_mcp
-      - MCP_PORT_08_K8S=${MCP_PORT_08_K8S:-5001} # For 08_k8s_mcp (runs on 5001)
-      - MCP_PORT_12=${MCP_PORT_12:-5012}       # For 12_cmdb_mcp
+      - MCP_PORT_01=${MCP_PORT_01:-8001}       # For 01_linux_cli_mcp
+      - MCP_PORT_08_K8S=${MCP_PORT_08_K8S:-8008} # For 08_k8s_mcp (runs on 8008)
+      - MCP_PORT_12=${MCP_PORT_12:-8012}       # For 12_cmdb_mcp
       - MCP_PORT_13=${MCP_PORT_13:-8013}       # For 13_secrets_mcp
+      - MCP_PORT_15=${MCP_PORT_15:-8015}       # For 15_freqtrade_mcp
     volumes:
       - ./secrets:/secrets:ro
     networks:
@@ -22,6 +23,7 @@ services:
       - 08_k8s_mcp
       - 12_cmdb_mcp
       - 13_secrets_mcp
+      - 15_freqtrade_mcp
 
   08_k8s_mcp:
     build:
@@ -61,16 +63,18 @@ services:
     environment:
       - MCP_PORT=8001
       # TODO: Define allowed commands and paths based on security needs
-      - ALLOWED_COMMANDS=ls,cat,grep,ps,df,echo,stat,head,tail,find # Example safe commands
+      - ALLOWED_COMMANDS=ls,cat,grep,ps,df,echo,stat,head,tail,find,ssh # Example safe commands, added ssh
       - ALLOWED_READ_PATHS=/etc:/var/log:/tmp:/home # Example read paths
       - ALLOWED_WRITE_PATHS=/tmp # Example write path
-      # Uncomment and configure if using SSH to remote hosts:
-      # - SSH_HOSTS=host1.example.com,host2.example.com
-      # - SSH_USER=your_ssh_user
-      # - SSH_KEY_SECRET_PATH=/secrets/linux_ssh_key # Path inside container to SSH private key
+      # Configure SSH to aicrusher:
+      - SSH_HOSTS=aicrusher # Add other hosts comma-separated if needed
+      - SSH_USER=jeriko
+      - SSH_KEY_SECRET_PATH=/secrets/aicrusher_jeriko_id_rsa # Path inside container to SSH private key
     volumes:
       # Mount secrets read-only
       - ./secrets:/secrets:ro
+      # Mount SSH private key for aicrusher
+      - ./secrets/aicrusher_jeriko_id_rsa:/secrets/aicrusher_jeriko_id_rsa:ro
       # Example: If managing Docker host, mount socket (requires privileged=true)
       # - /var/run/docker.sock:/var/run/docker.sock
       # Example: If managing remote hosts via SSH key
@@ -246,6 +250,56 @@ services:
       - mcp-network
     restart: unless-stopped
 
+  freqtrade_bot_15: # The actual Freqtrade bot instance for MCP 15
+    image: freqtradeorg/freqtrade:stable_freqai # Using FreqAI image for future compatibility
+    container_name: freqtrade_bot_15
+    ports:
+      - "${MCP_PORT_FREQTRADE_API:-18080}:8080" # Expose Freqtrade's API on a unique host port
+    volumes:
+      - ./15_freqtrade_mcp/user_data:/freqtrade/user_data # For strategies, data, logs, etc.
+      - ./15_freqtrade_mcp/config_bot.json:/freqtrade/config.json:ro # Bot's own configuration
+      - ./secrets/freqtrade_api_password.txt:/run/secrets/freqtrade_api_password_file:ro # Mount the password file
+    command: trade --config /freqtrade/config.json --db-url sqlite:////freqtrade/user_data/tradesv3.sqlite --logfile /freqtrade/user_data/logs/freqtrade.log
+    environment:
+      - TZ=${TZ:-UTC} # Set timezone, defaults to UTC
+      # Freqtrade will read its API password from its config.json. 
+      # If we want to inject it via an env var that config.json can reference, that's an option too.
+      # For now, assuming the password in config_bot.json is used, or the MCP uses a known one.
+      # The mcp_user and password from config_bot.json will be used by the MCP service to connect.
+      # Override password in config.json if secret file exists
+      - FREQTRADE_API_SERVER__PASSWORD__FILE=/run/secrets/freqtrade_api_password_file
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    # depends_on: # No direct dependencies for the bot itself other than general Docker runtime
+
+  15_freqtrade_mcp: # The MCP server that controls freqtrade_bot_15
+    build:
+      context: ./15_freqtrade_mcp
+      dockerfile: Dockerfile
+    ports:
+      - "${MCP_PORT_15:-8015}:8015" # MCP server's own port
+    environment:
+      - MCP_PORT=8015
+      - FREQTRADE_API_URL=http://freqtrade_bot_15:8080 # Internal URL to the bot
+      - FREQTRADE_USERNAME=mcp_user # Must match username in config_bot.json
+      - FREQTRADE_PASSWORD_SECRET_PATH=/run/secrets/freqtrade_api_password # MCP uses this to auth
+      - FREQTRADE_USER_DATA_PATH=/app/user_data # For MCP's CLI tools to access shared user_data
+      - FREQTRADE_CONFIG_FILE=/app/config_bot.json # For MCP's CLI tools to access shared config
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./15_freqtrade_mcp/user_data:/app/user_data # MCP server has access to user_data
+      - ./15_freqtrade_mcp/config_bot.json:/app/config_bot.json:ro # MCP server can read bot's config
+      - ./secrets:/secrets:ro # General secrets mount for the MCP server
+    secrets:
+      - freqtrade_api_password
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    depends_on:
+      - freqtrade_bot_15 # MCP server depends on the Freqtrade bot
+
 networks:
   mcp-network:
     driver: bridge
@@ -256,6 +310,10 @@ secrets:
     file: ./secrets/keepass_master_password.txt # Local file containing the password
   # azure_sp_secret:
   #   file: ./path/to/azure_sp_secret.txt 
+  # servicenow_password: # Temporarily comment out until secrets are defined
+  #   file: ./secrets/servicenow_password.txt
+  freqtrade_api_password:
+    file: ./secrets/freqtrade_api_password.txt
 
 # Define persistent volumes for monitoring data
 volumes:

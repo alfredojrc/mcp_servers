@@ -1,0 +1,40 @@
+{
+    "max_open_trades": 5,
+    "stake_currency": "USDT",
+    "stake_amount": "unlimited",
+    "dry_run": true,
+    "exchange": {
+        "name": "binance",
+        "key": "",
+        "secret": "",
+        "ccxt_config": {},
+        "ccxt_async_config": {}
+    },
+    "pairlists": [
+        {"method": "StaticPairList"}
+    ],
+    "telegram": {
+        "enabled": false
+    },
+    "api_server": {
+        "enabled": true,
+        "listen_ip_address": "0.0.0.0",
+        "listen_port": 8080,
+        "username": "mcp_user",
+        "password": "THIS_WILL_BE_OVERRIDDEN_BY_SECRET",
+        "jwt_secret_key": "supersecretjwtkeythatshouldberandom",
+        "CORS_origins": [],
+        "verbosity": "error",
+        "ws_token": "a_secure_websocket_token_replace_me"
+    },
+    "bot_name": "MCP_FreqtradeBot",
+    "initial_state": "running",
+    "force_entry_enable": true,
+    "internals": {
+        "process_throttle_secs": 5
+    },
+    "freqai": {
+        "enabled": false,
+        "path_to_pytorch_model": ""
+    }
+} 

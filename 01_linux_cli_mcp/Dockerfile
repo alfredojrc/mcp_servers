@@ -1,9 +1,9 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
-WORKDIR /workspace
+# Install openssh-client
+RUN apt-get update && apt-get install -y openssh-client && rm -rf /var/lib/apt/lists/*
 
-# Install potentially needed OS packages (e.g., for SSH or specific commands)
-# RUN apt-get update && apt-get install -y --no-install-recommends openssh-client && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
 
 # Copy only requirements first to leverage Docker cache
 COPY requirements.txt ./
@@ -16,12 +16,12 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Ensure entrypoint script is executable
-RUN chmod +x /workspace/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Expose the MCP server port
-EXPOSE 5001
+EXPOSE 8001
 # Expose the Prometheus metrics port
 EXPOSE 9091
 
 # Set the entrypoint script
-ENTRYPOINT ["/workspace/entrypoint.sh"] 
+ENTRYPOINT ["/app/entrypoint.sh"] 

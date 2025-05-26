@@ -390,6 +390,7 @@ def sse_events():
     )
 
 @app.route('/mcp', methods=['POST'])
+@app.route('/messages', methods=['POST'])
 def mcp_request():
     """
     Handle MCP protocol requests from Cursor IDE.

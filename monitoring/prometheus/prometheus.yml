@@ -13,8 +13,8 @@ scrape_configs:
     # Assumes each MCP service will expose metrics on port 9091
     static_configs:
       - targets:
-          - '00_master_mcp:9091'
-          - '01_linux_cli_mcp:9091'
+          - '00_master_mcp:8000'
+          - '01_linux_cli_mcp:5001'
           - '02_windows_mcp:9091'
           - '03_azure_mcp:9091'
           - '04_google_cloud_mcp:9091'
@@ -25,8 +25,13 @@ scrape_configs:
           - '09_n8n_mcp:9091'
           - '10_macos_mcp:9091'
           - '11_freqtrade_mcp:9091'
-          - '12_cmdb_mcp:9091'
-          - '13_secrets_mcp:9091'
+          - '12_cmdb_mcp:5012'
+          - '13_secrets_mcp:8013'
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '(00_master_mcp:8000|01_linux_cli_mcp:5001|12_cmdb_mcp:5012|13_secrets_mcp:8013)'
+        target_label: __metrics_path__
+        replacement: /metrics
     # Alternatively, use Docker service discovery if preferred:
     # docker_sd_configs:
     #   - host: unix:///var/run/docker.sock

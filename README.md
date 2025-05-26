@@ -106,7 +106,7 @@ Each service implements an MCP server with official SDKs (Python, TypeScript, Go
 
 | Service                 | Purpose                                     | Example Tools                               |
 |-------------------------|---------------------------------------------|---------------------------------------------|
-| `01_linux_cli_mcp`      | Execute Linux commands & manage subsystems  | `os.linux.cli.runCommand`, `os.linux.nginx.reload` |
+| `01_linux_cli_mcp`      | Execute Linux commands & manage subsystems  | `linux.runLocalCommand`, `linux.sshExecuteCommand`, `linux.readFile` |
 | `02_windows_mcp`        | Execute Windows PowerShell commands         | `os.windows.ps.runScript`, `os.windows.process.get` |
 | `03_azure_mcp`          | Manage Azure resources                      | `cloud.azure.vm.create`, `cloud.azure.storage.list` |
 | `04_google_cloud_mcp`   | Manage Google Cloud resources               | `cloud.gcloud.compute.createInstance`, `cloud.gcloud.storage.listBucket` |
@@ -116,7 +116,10 @@ Each service implements an MCP server with official SDKs (Python, TypeScript, Go
 | `08_k8s_mcp`            | Interact with Kubernetes clusters           | `infra.k8s.pods.list`, `infra.k8s.helm.install` |
 | `09_n8n_mcp`            | Orchestrate n8n workflows                   | `workflows.n8n.trigger`                     |
 | `10_macos_mcp`          | Manage macOS tasks                          | `os.macos.apps.list`, `os.macos.script.control` |
-| `11_freqtrade_mcp`      | Execute Freqtrade trading operations        | `trading.freqtrade.placeOrder`, `trading.freqtrade.getBalance` |
+| `12_cmdb_mcp`           | Interact with Configuration Management Database | `cmdb.queryAssets`, `cmdb.servicenow.getIncident` |
+| `13_secrets_mcp`        | Manage secrets securely                     | `secrets.get`, `secrets.keepass.getPassword`    |
+| `14_aider_mcp`          | AI coding assistant tasks                   | `aider.editFile`, `aider.runTests`                |
+| `15_freqtrade_mcp`      | Advanced Freqtrade trading with FreqAI/Hyperopt | `trading.freqtrade.api.getStatus`, `trading.freqtrade.cli.runHyperopt` |
 
 For a Kubernetes reference implementation, see [mcp-server-kubernetes](https://github.com/Flux159/mcp-server-kubernetes).
 
@@ -148,9 +151,10 @@ For a Kubernetes reference implementation, see [mcp-server-kubernetes](https://g
 | `08_k8s_mcp`            | 8008 | Kubernetes cluster operations     |
 | `09_n8n_mcp`            | 8009 | n8n workflow orchestration        |
 | `10_macos_mcp`          | 8010 | macOS system operations           |
-| `11_freqtrade_mcp`      | 8011 | Freqtrade trading operations      |
 | `12_cmdb_mcp`           | 8012 | Configuration Management Database |
 | `13_secrets_mcp`        | 8013 | Secrets Management Interface      |
+| `14_aider_mcp`          | 8014 | AI coding assistant service       |
+| `15_freqtrade_mcp`      | 8015 | Freqtrade API & CLI Service       |
 
 ## Operating Principles
 

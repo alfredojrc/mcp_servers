@@ -1,0 +1,2 @@
+hostname,ip_address,os_type,os_version,services,path,user,ssh_access_notes
+aicrusher,192.168.68.100/22,Ubuntu,24.04 LTS,"Docker, Freqtrade",/home/jeriko/freqtrade_ai/,jeriko,"SSH access via alf@macbook key" 

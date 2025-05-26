@@ -3,8 +3,8 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install aider-mcp; this will also pull in aider-chat
-RUN pip install --no-cache-dir aider-mcp
+# Install aider-mcp-server
+RUN pip install --no-cache-dir mseep-aider-mcp-server
 
 # Expose the default MCP port for this service (can be overridden)
 EXPOSE 8014

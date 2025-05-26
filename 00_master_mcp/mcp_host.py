@@ -12,6 +12,10 @@ import time # Added for health check
 import json
 from datetime import datetime as dt # Alias to avoid conflict
 
+# --- Add these imports ---
+import httpx # For making HTTP requests in MCPServiceClient
+import uuid  # For generating unique JSON-RPC IDs
+
 # --- JSON Formatter Class ---
 class JSONFormatter(logging.Formatter):
     def __init__(self, service_name, *args, **kwargs):
@@ -78,10 +82,11 @@ DEFAULT_SERVERS = {
 # Based on services we've touched (linux, k8s, secrets, cmdb)
 
 FOCUSED_DEFAULT_SERVERS = {
-    "os.linux":       f"http://01_linux_cli_mcp:{os.getenv('MCP_PORT_01', '5001')}",
-    "infra.k8s":      f"http://08_k8s_mcp:{os.getenv('MCP_PORT_08_K8S', '5001')}", # k8s in its main.py uses WEBCONTROL_PORT or 5001, Docker Compose uses 5001
-    "cmdb":           f"http://12_cmdb_mcp:{os.getenv('MCP_PORT_12', '5012')}",
+    "os.linux":       f"http://01_linux_cli_mcp:{os.getenv('MCP_PORT_01', '8001')}",
+    "infra.k8s":      f"http://08_k8s_mcp:{os.getenv('MCP_PORT_08_K8S', '8008')}", # k8s in its main.py uses WEBCONTROL_PORT or 5001, Docker Compose now uses 8008
+    "cmdb":           f"http://12_cmdb_mcp:{os.getenv('MCP_PORT_12', '8012')}",
     "secrets":        f"http://13_secrets_mcp:{os.getenv('MCP_PORT_13', '8013')}",
+    "trading.freqtrade": f"http://15_freqtrade_mcp:{os.getenv('MCP_PORT_15', '8015')}" # Added Freqtrade MCP
 }
 
 
@@ -177,6 +182,170 @@ mcp_app = mcp.sse_app()
 async def health_check(request): # Starlette request argument
     service_name = mcp.name if hasattr(mcp, 'name') else "Master Orchestrator" # Fallback for safety
     return JSONResponse({"status": "healthy", "service": service_name, "timestamp": time.time()})
+
+# --- Placeholder for Enhanced Orchestrator Components ---
+
+class MCPServiceClient:
+    def __init__(self, service_name: str, service_url: str):
+        self.service_name = service_name
+        self.service_url = service_url.rstrip('/') # Ensure no trailing slash for consistency
+        self.http_client = httpx.AsyncClient(timeout=30.0) # Increased timeout for potentially long tool calls
+        logger.info(f"MCPServiceClient initialized for {service_name} at {self.service_url}")
+
+    async def call_tool(self, tool_name: str, params: dict) -> dict:
+        request_id = str(uuid.uuid4())
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "params": {
+                "tool": tool_name,
+                "params": params
+            },
+            "id": request_id
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "MCPServiceClient/1.0"
+        }
+        
+        effective_url = f"{self.service_url}/" # POST to the root of the MCP server
+        
+        logger.debug(f"MCPServiceClient: Calling tool {tool_name} on {effective_url} with params {params}, request_id: {request_id}")
+        
+        try:
+            response = await self.http_client.post(effective_url, json=payload, headers=headers)
+            response.raise_for_status() # Raise an exception for 4xx/5xx status codes
+            
+            response_data = response.json()
+            logger.debug(f"MCPServiceClient: Response for {tool_name}, request_id {request_id}: {response_data}")
+
+            if response_data.get("id") != request_id:
+                logger.error(f"MCPServiceClient: JSON-RPC ID mismatch for {tool_name}. Expected {request_id}, got {response_data.get('id')}")
+                return {"error": {"code": -32603, "message": "Internal error: JSON-RPC ID mismatch"}}
+
+            if "error" in response_data:
+                logger.error(f"MCPServiceClient: Error calling tool {tool_name}: {response_data['error']}")
+                return {"error": response_data["error"]}
+            
+            return {"result": response_data.get("result")}
+            
+        except httpx.HTTPStatusError as e:
+            logger.error(f"MCPServiceClient: HTTP error calling tool {tool_name} on {effective_url}: {e.response.status_code} - {e.response.text}", exc_info=True)
+            return {"error": {"code": -32000, "message": f"HTTP error: {e.response.status_code}", "data": e.response.text}}
+        except httpx.RequestError as e:
+            logger.error(f"MCPServiceClient: Request error calling tool {tool_name} on {effective_url}: {e}", exc_info=True)
+            return {"error": {"code": -32001, "message": f"Request error: {str(e)}"}}
+        except json.JSONDecodeError as e:
+            logger.error(f"MCPServiceClient: JSON decode error for tool {tool_name} response from {effective_url}: {e}", exc_info=True)
+            return {"error": {"code": -32700, "message": "Parse error: Invalid JSON response"}}
+
+class WorkflowEngine:
+    def __init__(self, master_mcp_client: MCPServiceClient): # Modified parameter
+        self.master_mcp_client = master_mcp_client # Modified attribute name
+        logger.info("WorkflowEngine initialized with Master MCP Client.")
+
+    async def execute_workflow(self, workflow_definition: dict) -> dict:
+        workflow_name = workflow_definition.get('name', 'Unnamed Workflow')
+        logger.info(f"WorkflowEngine: Starting execution of workflow: {workflow_name}")
+        full_results = {"workflow_name": workflow_name, "status": "pending", "steps": []}
+        
+        has_errors = False
+        for i, step_def in enumerate(workflow_definition.get("steps", [])):
+            step_number = i + 1
+            service_namespace = step_def.get("service")
+            original_tool_name = step_def.get("tool")
+            params = step_def.get("params", {})
+
+            if not service_namespace or not original_tool_name:
+                logger.error(f"Workflow '{workflow_name}' Step {step_number}: Invalid step definition, missing 'service' or 'tool'. Step: {step_def}")
+                full_results["steps"].append({
+                    "step": step_number, "service": service_namespace, "tool": original_tool_name,
+                    "status": "error", "error": {"message": "Invalid step definition: missing 'service' or 'tool'."}
+                })
+                has_errors = True
+                break 
+
+            # Construct the fully qualified tool name for the master proxy
+            proxied_tool_name = f"{service_namespace}.{original_tool_name}"
+            
+            logger.info(f"Workflow '{workflow_name}' Step {step_number}: Executing {proxied_tool_name} with params {params}")
+            
+            try:
+                # Use the master_mcp_client to call the proxied tool
+                tool_response = await self.master_mcp_client.call_tool(proxied_tool_name, params)
+                
+                if tool_response and "error" in tool_response and tool_response["error"] is not None: # Check if error field exists and is not None
+                    logger.error(f"Workflow '{workflow_name}' Step {step_number} ({proxied_tool_name}): Tool call failed: {tool_response['error']}")
+                    full_results["steps"].append({
+                        "step": step_number, "service": service_namespace, "tool": original_tool_name,
+                        "status": "error", "error": tool_response["error"], "params": params
+                    })
+                    has_errors = True
+                    # Decide on error handling: break, continue, or conditional logic (not implemented yet)
+                    break # Stop workflow on first error for now
+                else:
+                    logger.info(f"Workflow '{workflow_name}' Step {step_number} ({proxied_tool_name}): Succeeded.")
+                    full_results["steps"].append({
+                        "step": step_number, "service": service_namespace, "tool": original_tool_name,
+                        "status": "success", "result": tool_response.get("result"), "params": params
+                    })
+
+            except Exception as e:
+                logger.error(f"Workflow '{workflow_name}' Step {step_number} ({proxied_tool_name}): Exception during tool call: {e}", exc_info=True)
+                full_results["steps"].append({
+                    "step": step_number, "service": service_namespace, "tool": original_tool_name,
+                    "status": "error", "error": {"message": str(e)}, "params": params
+                })
+                has_errors = True
+                break # Stop workflow on first error
+
+        if has_errors:
+            full_results["status"] = "failed"
+        else:
+            full_results["status"] = "completed"
+            
+        logger.info(f"WorkflowEngine: Finished execution of workflow: {workflow_name}, Status: {full_results['status']}")
+        return full_results
+
+class EnhancedMCPHost:
+    def __init__(self, mcp_instance: FastMCP, master_server_base_url: str): # Modified parameter
+        self.mcp = mcp_instance
+        # self.proxied_servers = proxied_servers_config # This is not directly used anymore if client talks to master
+        
+        self.master_client = MCPServiceClient(
+            service_name="master_orchestrator_internal_client", 
+            service_url=master_server_base_url
+        )
+        
+        self.workflow_engine = WorkflowEngine(self.master_client) # Pass the single master client
+        
+        # Register workflow execution tool with the main mcp instance
+        @self.mcp.tool("orchestrator.executeWorkflow")
+        async def execute_workflow_tool(workflow: dict) -> dict:
+            """
+            Executes a predefined workflow consisting of multiple tool calls across different services.
+            The workflow parameter should be a dictionary defining the workflow name and steps.
+            Example:
+            {
+                'name': 'deploy_application',
+                'description': 'Deploy application to Kubernetes',
+                'steps': [
+                    {'service': 'secrets', 'tool': 'getSecret', 'params': {'secretName': 'docker-registry'}},
+                    {'service': 'infra.k8s', 'tool': 'apply_manifest', 'params': {'namespace': 'production', 'yaml_manifest': '...'}},
+                    {'service': 'os.linux', 'tool': 'runCommand', 'params': {'command': 'curl health-check'}}
+                ]
+            }
+            """
+            logger.info(f"execute_workflow_tool invoked for workflow: {workflow.get('name')}")
+            return await self.workflow_engine.execute_workflow(workflow)
+
+        logger.info("EnhancedMCPHost initialized and workflow tool registered.")
+
+# --- Initialize Enhanced Host capabilities ---
+# We use FOCUSED_DEFAULT_SERVERS as the config for proxied servers.
+# The master_server_base_url should point to where the 'mcp' instance is served.
+master_base_url = f"http://localhost:{MCP_PORT}" # Assuming localhost for internal calls
+enhanced_host = EnhancedMCPHost(mcp_instance=mcp, master_server_base_url=master_base_url)
 
 if __name__ == "__main__":
     print(f"Starting MCP Host (Proxy) directly on port {MCP_PORT}...")

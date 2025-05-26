@@ -4,7 +4,7 @@ import subprocess
 import shlex
 import datetime
 import time
-from typing import Optional
+from typing import Optional, List, Dict, Any, Tuple
 # import paramiko # Uncomment if using SSH
 from threading import Thread
 
@@ -60,14 +60,31 @@ root_logger.setLevel(logging.INFO) # Set level on the root logger
 logger = logging.getLogger(__name__) # Use __name__ for module-specific logger is a common practice
 
 # Configuration from environment variables
-MCP_PORT = int(os.getenv("MCP_PORT", 5001))
-METRICS_PORT = int(os.getenv("METRICS_PORT", 9091))
-ALLOWED_COMMANDS = os.getenv("ALLOWED_COMMANDS", "ls,cat,grep,ps,df,echo").split(',')
-ALLOWED_READ_PATHS = os.getenv("ALLOWED_READ_PATHS", "/tmp:/var/log").split(':')
-ALLOWED_WRITE_PATHS = os.getenv("ALLOWED_WRITE_PATHS", "/tmp").split(':')
-# SSH_HOSTS = os.getenv("SSH_HOSTS", "").split(',') # Uncomment if using SSH
-# SSH_USER = os.getenv("SSH_USER") # Uncomment if using SSH
-# SSH_KEY_SECRET_PATH = os.getenv("SSH_KEY_SECRET_PATH") # Uncomment if using SSH
+MCP_PORT = int(os.getenv("MCP_PORT", "8001"))
+# METRICS_PORT = int(os.getenv("METRICS_PORT", 9091)) # Removed
+ALLOWED_COMMANDS_STR = os.getenv("ALLOWED_COMMANDS", "ls,cat,grep,ps,df,echo,stat,head,tail,find,ssh")
+ALLOWED_COMMANDS = [cmd.strip() for cmd in ALLOWED_COMMANDS_STR.split(',')]
+ALLOWED_READ_PATHS_STR = os.getenv("ALLOWED_READ_PATHS", "/etc:/var/log:/tmp:/home")
+ALLOWED_READ_PATHS = [path.strip() for path in ALLOWED_READ_PATHS_STR.split(':')]
+ALLOWED_WRITE_PATHS_STR = os.getenv("ALLOWED_WRITE_PATHS", "/tmp")
+ALLOWED_WRITE_PATHS = [path.strip() for path in ALLOWED_WRITE_PATHS_STR.split(':')]
+
+# SSH Configuration
+SSH_HOSTS_STR = os.getenv("SSH_HOSTS")
+SSH_CONFIG: Dict[str, Dict[str, str]] = {}
+if SSH_HOSTS_STR:
+    # Assuming SSH_USER and SSH_KEY_SECRET_PATH are global for all SSH_HOSTS for simplicity
+    # If per-host config is needed, SSH_HOSTS could be a JSON string or structured differently
+    ssh_user = os.getenv("SSH_USER")
+    ssh_key_path = os.getenv("SSH_KEY_SECRET_PATH")
+    if ssh_user and ssh_key_path:
+        for host in SSH_HOSTS_STR.split(','):
+            host = host.strip()
+            if host:
+                SSH_CONFIG[host] = {"user": ssh_user, "key_path": ssh_key_path}
+        logger.info(f"SSH configured for hosts: {list(SSH_CONFIG.keys())}")
+    else:
+        logger.warning("SSH_HOSTS is set, but SSH_USER or SSH_KEY_SECRET_PATH is missing. SSH functionality will be limited.")
 
 # --- Metrics Definitions ---
 # Use Summary for latency as it includes quantiles, Histogram is another option
@@ -329,34 +346,78 @@ def write_file_tool(path: str, content: str, append: bool = False, requires_appr
         logger.error(f"Error writing file {path}: {e}", exc_info=True)
         return f"Error writing file: {e}"
 
-# --- Add other namespaced tools here (nginx, ceph, etc.) following the pattern ---
-# Example:
-# @mcp_server.tool("os.linux.nginx.reloadConfig")
-# @TOOL_LATENCY.labels(tool_name='os.linux.nginx.reloadConfig').time()
-# def nginx_reload(requires_approval: bool = True) -> dict:
-#     TOOL_CALLS_TOTAL.labels(tool_name='os.linux.nginx.reloadConfig').inc()
-#     if requires_approval:
-#         TOOL_ERRORS_TOTAL.labels(tool_name='os.linux.nginx.reloadConfig').inc()
-#         return {"error": "Approval required"}
-#     result = run_local_command("nginx -s reload")
-#     if result.get("error"):
-#          TOOL_ERRORS_TOTAL.labels(tool_name='os.linux.nginx.reloadConfig').inc()
-#     return result
+@mcp_server.tool("linux.sshExecuteCommand")
+async def ssh_execute_command(target_host: str, remote_command: str) -> Dict[str, Any]:
+    """
+    Executes a command on a remote Linux host via SSH.
+    The target_host must be pre-configured in the SSH_HOSTS environment variable.
+    """
+    logger.info(f"Attempting SSH command on {target_host}: {remote_command}")
 
-# --- Metrics Server Thread ---
-def start_metrics_server(port):
+    if not SSH_HOSTS_STR:
+        logger.error("SSH_HOSTS environment variable not set. Cannot execute SSH command.")
+        return {"error": "SSH is not configured on the server: SSH_HOSTS not set."}
+
+    if target_host not in SSH_CONFIG:
+        logger.error(f"Host '{target_host}' is not a configured SSH target. Available: {list(SSH_CONFIG.keys())}")
+        return {"error": f"Host '{target_host}' is not a configured SSH target."}
+
+    host_config = SSH_CONFIG[target_host]
+    ssh_user = host_config["user"]
+    ssh_key_file = host_config["key_path"]
+
+    if not os.path.exists(ssh_key_file):
+        logger.error(f"SSH key file not found at {ssh_key_file} for host {target_host}")
+        return {"error": f"SSH key file not found at {ssh_key_file} for host {target_host}"}
+    
+    # Validate the remote_command (basic validation for now, can be expanded)
+    # This is a tricky part, as remote commands can also be dangerous.
+    # For now, we rely on the restricted SSH key and user permissions on the target.
+    # A more robust solution might involve a predefined set of allowed remote commands or patterns.
+    if not remote_command or any(char in remote_command for char in ['\\n', ';', '&&', '||', '`', '$(']):
+        logger.warning(f"Potentially unsafe characters in remote command for SSH: {remote_command}")
+        return {"error": "Invalid or potentially unsafe remote command."}
+
+    # Construct the SSH command
+    # -o StrictHostKeyChecking=no and UserKnownHostsFile=/dev/null are used to avoid issues with host key verification in a containerized environment.
+    # This has security implications if the network can be MITM'd. For controlled environments.
+    # For higher security, manage known_hosts.
+    ssh_command_list = [
+        "ssh",
+        "-i", ssh_key_file,
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "UserKnownHostsFile=/dev/null",
+        f"{ssh_user}@{target_host}",
+        remote_command
+    ]
+    
+    command_str_for_log = ' '.join(shlex.quote(arg) for arg in ssh_command_list)
+    logger.info(f"Executing SSH command: {command_str_for_log}")
+
     try:
-        start_http_server(port)
-        logger.info(f"Prometheus metrics server started on port {port}")
+        process = subprocess.run(
+            ssh_command_list,
+            capture_output=True,
+            text=True,
+            check=False, # Don't raise exception for non-zero exit codes, handle it in result
+            timeout=60  # Timeout for the SSH command
+        )
+        logger.info(f"SSH command to {target_host} exited with code {process.returncode}")
+        return {
+            "stdout": process.stdout.strip(),
+            "stderr": process.stderr.strip(),
+            "exit_code": process.returncode,
+            "command_executed": command_str_for_log
+        }
+    except subprocess.TimeoutExpired:
+        logger.error(f"SSH command to {target_host} timed out: {command_str_for_log}")
+        return {"error": "SSH command timed out", "stdout": "", "stderr": "Timeout after 60 seconds."}
     except Exception as e:
-        logger.error(f"Failed to start Prometheus metrics server: {e}", exc_info=True)
+        logger.error(f"Error executing SSH command to {target_host}: {e}", exc_info=True)
+        return {"error": str(e), "stdout": "", "stderr": str(e)}
 
 # --- Main Execution ---
 if __name__ == "__main__":
-    # Start metrics server in a background thread
-    metrics_thread = Thread(target=start_metrics_server, args=(METRICS_PORT,), daemon=True)
-    metrics_thread.start()
-
     logger.info(f"Starting Linux CLI MCP Server on port {MCP_PORT}")
     
     # Get the Starlette app from FastMCP

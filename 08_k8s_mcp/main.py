@@ -30,10 +30,7 @@ load_dotenv()
 # Add these imports for JSON logging
 import json
 
-# --- Health Check Endpoint (as per roadmap) ---
-@app.route("/health")
-async def health_check():
-    return jsonify({"status": "healthy", "service": "k8s-mcp", "timestamp": time.time()})
+# Health check endpoint will be defined after app initialization
 
 # Define Tool Schemas (Example - adapt inputSchema as needed)
 K8S_TOOLS = [
@@ -324,6 +321,11 @@ def fetch_k8s_docs() -> None:
                 
     except Exception as e:
         logger.error(f"Error fetching K8s docs: {str(e)}")
+
+# Health Check Endpoint
+@app.route("/health")
+def health_check():
+    return jsonify({"status": "healthy", "service": "k8s-mcp", "timestamp": time.time()})
 
 # SSE endpoint for Cursor IDE integration
 @app.route('/sse')

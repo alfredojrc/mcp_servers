@@ -21,6 +21,8 @@ COPY mcp_server.py .
 # Expose the port the MCP server will run on
 EXPOSE 8015
 
-# CMD for our MCP server
-# We override the base image's CMD.
-CMD ["uvicorn", "mcp_server:app", "--host", "0.0.0.0", "--port", "8015"] 
+# Override the base image's ENTRYPOINT (which is set to "freqtrade")
+ENTRYPOINT []
+
+# CMD for our MCP server - run as a Python script
+CMD ["python", "mcp_server.py"] 

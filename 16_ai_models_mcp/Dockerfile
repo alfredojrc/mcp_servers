@@ -27,5 +27,5 @@ COPY mcp_server.py .
 # Expose the port the MCP server will run on (e.g., 8016)
 EXPOSE 8016
 
-# CMD for the AI Models MCP server
-CMD ["uvicorn", "mcp_server:app", "--host", "0.0.0.0", "--port", "8016"] 
+# CMD for the AI Models MCP server - run as Python script
+CMD ["python", "mcp_server.py"] 

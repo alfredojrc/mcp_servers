@@ -8,13 +8,11 @@ from typing import Optional, List, Dict, Any, Tuple, Union
 import httpx
 import asyncio
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 from starlette.routing import Route
 from starlette.responses import JSONResponse
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -58,251 +56,229 @@ MCP_PORT = int(os.getenv("MCP_PORT", "8015"))
 FREQTRADE_SRC_PATH = "/freqtrade" # Path where Freqtrade source is in the base image
 
 # --- FastMCP Server Setup ---
-from fastmcp import FastMCP, Tool, ToolContext
-
-app = FastMCP(
-    title="Freqtrade MCP Knowledge Hub",
-    description="Provides tools for exploring Freqtrade source code and knowledge.",
-    version="0.2.0",  # Updated version for knowledge hub
-    service_name=SERVICE_NAME,
-    # Removed Freqtrade API related env vars as this service no longer directly controls a bot
-)
+mcp_server = FastMCP(name="freqtrade-knowledge-hub", port=MCP_PORT, host="0.0.0.0")
 
 # --- Helper Functions ---
 
 async def run_local_command(command_str: str, working_dir: Optional[str] = None) -> Tuple[int, str, str]:
-    """Executes a local command and returns status, stdout, and stderr."""
+    """
+    Run a command locally within the container.
+    Returns: (return_code, stdout, stderr)
+    """
     try:
-        logger.info(f"Executing local command: {command_str}", extra={"props": {"command": command_str, "cwd": working_dir}})
-        process = await asyncio.create_subprocess_shell(
-            command_str,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+        cmd_list = shlex.split(command_str)
+        proc = await asyncio.create_subprocess_exec(
+            *cmd_list,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
             cwd=working_dir
         )
-        stdout, stderr = await process.communicate()
-        exit_code = process.returncode
-        
-        stdout_str = stdout.decode().strip()
-        stderr_str = stderr.decode().strip()
-
-        if exit_code == 0:
-            logger.info(f"Local command successful: {command_str}", extra={"props": {"exit_code": exit_code, "stdout": stdout_str[:500]}}) # Log snippet
-        else:
-            logger.warning(f"Local command failed: {command_str}", extra={"props": {"exit_code": exit_code, "stderr": stderr_str, "stdout": stdout_str}})
-        
-        return exit_code, stdout_str, stderr_str
+        stdout_bytes, stderr_bytes = await proc.communicate()
+        stdout = stdout_bytes.decode('utf-8', errors='replace') if stdout_bytes else ""
+        stderr = stderr_bytes.decode('utf-8', errors='replace') if stderr_bytes else ""
+        return proc.returncode or 0, stdout, stderr
     except Exception as e:
-        logger.error(f"Exception executing local command '{command_str}': {e}", exc_info=True)
+        logger.error(f"Failed to run command '{command_str}': {e}", exc_info=True)
         return -1, "", str(e)
 
 # --- Knowledge Base Tools ---
 
-@app.tool()
-class FreqtradeHyperoptBestPractices(Tool):
-    """Provides a summary of best practices for Freqtrade Hyperopt."""
-    name = "freqtrade.knowledge.hyperoptBestPractices"
-    description = "Get a summary of best practices for Freqtrade Hyperopt, common issues, and CLI examples."
-    
-    async def run(self, context: ToolContext, params: dict) -> Dict[str, Any]:
-        # Content remains the same as before
-        # ... (existing content for hyperoptBestPractices)
-        content = {
-            "summary": "Summary of Freqtrade Hyperopt best practices.",
-            "details": [
-                "Use a realistic timerange: Don't optimize for a few days. Use at least 1-3 months of data, ideally more.",
-                "Avoid overfitting: Don't use too many parameters or too wide ranges. Focus on parameters that make logical sense for your strategy.",
-                "Sufficient epochs: Run enough epochs for the optimizer to converge (e.g., 100-1000+, depending on complexity).",
-                "Meaningful objective function: Optimize for a metric that reflects your trading goals (e.g., `SortinoHyperOptLoss`, `SharpeHyperOptLossDaily`, `ExpectancyHyperOptLoss`).",
-                "Regular re-optimization: Market conditions change. Re-optimize your parameters periodically.",
-                "Spaces to optimize: 'buy', 'sell', 'protection', 'roi', 'stoploss', 'trailing'.",
-                "Parameter types: Categorical (e.g., true/false), IntParameter, RealParameter, SKDecimalParameter.",
-                "Consider `plot-dataframe` and `plot-profit` during hyperopt runs for visual feedback (if running locally)."
-            ],
-            "common_issues": [
-                "Hyperopt takes too long: Reduce parameter space, use a smaller timerange for initial exploration, or use a more powerful machine.",
-                "Results are not improving: Check your objective function, parameter ranges, and strategy logic.",
-                "Overfitting: Results look great in hyperopt but perform poorly in backtesting/live. Simplify your parameter space or use more robust optimization techniques."
-            ],
-            "cli_examples": [
-                "freqtrade hyperopt --config config.json --strategy MyStrategy --hyperopt-loss SharpeHyperOptLossDaily --epochs 100 --spaces roi stoploss",
-                "freqtrade hyperopt --hyperopt MyHyperopt --epochs 500 --timerange 20230101-20231231"
-            ],
-            "reference": "https://www.freqtrade.io/en/stable/hyperoptimization/"
-        }
-        return content
+@mcp_server.tool("freqtrade.knowledge.hyperoptBestPractices")
+def freqtrade_hyperopt_best_practices() -> Dict[str, Any]:
+    """Get a summary of best practices for Freqtrade Hyperopt, common issues, and CLI examples."""
+    content = {
+        "summary": "Summary of Freqtrade Hyperopt best practices.",
+        "details": [
+            "Use a realistic timerange: Don't optimize for a few days. Use at least 1-3 months of data, ideally more.",
+            "Avoid overfitting: Don't use too many parameters or too wide ranges. Focus on parameters that make logical sense for your strategy.",
+            "Sufficient epochs: Run enough epochs for the optimizer to converge (e.g., 100-1000+, depending on complexity).",
+            "Meaningful objective function: Optimize for a metric that reflects your trading goals (e.g., `SortinoHyperOptLoss`, `SharpeHyperOptLossDaily`, `ExpectancyHyperOptLoss`).",
+            "Regular re-optimization: Market conditions change. Re-optimize your parameters periodically.",
+            "Spaces to optimize: 'buy', 'sell', 'protection', 'roi', 'stoploss', 'trailing'.",
+            "Parameter types: Categorical (e.g., true/false), IntParameter, RealParameter, SKDecimalParameter.",
+            "Consider `plot-dataframe` and `plot-profit` during hyperopt runs for visual feedback (if running locally)."
+        ],
+        "common_issues": [
+            "Hyperopt takes too long: Reduce parameter space, use a smaller timerange for initial exploration, or use a more powerful machine.",
+            "Results are not improving: Check your objective function, parameter ranges, and strategy logic.",
+            "Overfitting: Results look great in hyperopt but perform poorly in backtesting/live. Simplify your parameter space or use more robust optimization techniques."
+        ],
+        "cli_examples": [
+            "freqtrade hyperopt --config config.json --strategy MyStrategy --hyperopt-loss SharpeHyperOptLossDaily --epochs 100 --spaces roi stoploss",
+            "freqtrade hyperopt --hyperopt MyHyperopt --epochs 500 --timerange 20230101-20231231"
+        ],
+        "reference": "https://www.freqtrade.io/en/stable/hyperoptimization/"
+    }
+    return content
 
-@app.tool()
-class FreqtradeFreqAiOverview(Tool):
-    """Provides an overview of FreqAI, its features, setup, and common pitfalls."""
-    name = "freqtrade.knowledge.freqAiOverview"
-    description = "Get an overview of FreqAI, its features, setup requirements, usage, modern vs. legacy considerations, and example model types."
-
-    async def run(self, context: ToolContext, params: dict) -> Dict[str, Any]:
-        # Content remains the same as before
-        # ... (existing content for freqAiOverview)
-        content = {
-            "summary": "FreqAI is Freqtrade's machine learning module, allowing for predictive trading models.",
-            "features": [
-                "Integration with popular ML libraries (Scikit-learn, Keras/TensorFlow, PyTorch, LightGBM, CatBoost, XGBoost).",
-                "Customizable data splitting and feature engineering.",
-                "Live prediction and retraining capabilities.",
-                "Support for various model types (classification, regression).",
-                "Advanced outlier detection and data drift analysis."
-            ],
-            "setup_requirements": [
-                "Ensure Freqtrade is installed with FreqAI dependencies (`pip install -r requirements-freqai.txt`).",
-                "Configure `freqai` section in your `config.json`.",
-                "Develop or adapt a strategy to work with FreqAI (implement `populate_any_indicators`, `feature_engineering_standard`, etc.).",
-                "Sufficient historical data for training."
-            ],
-            "usage_flow": [
-                "1. Data download and preparation.",
-                "2. Feature engineering within your strategy.",
-                "3. Model training (either manually via CLI or automatically by the bot).",
-                "4. Model deployment for live predictions.",
-                "5. Periodic retraining and monitoring."
-            ],
-            "modern_vs_legacy_freqai": "Always prefer Modern FreqAI. Legacy FreqAI is deprecated and has significant limitations. Modern FreqAI offers more flexibility, better data handling, and advanced features.",
-            "common_pitfalls": [
-                "Data leakage: Accidentally using future information during training.",
-                "Overfitting: Models perform well on training data but poorly on unseen data.",
-                "Insufficient data: Not enough historical data for robust model training.",
-                "Poor feature engineering: Features do not capture predictive signals.",
-                "Ignoring model interpretability: Not understanding why the model makes certain predictions."
-            ],
-            "example_model_types": ["RandomForestClassifier", "GradientBoostingClassifier", "LGBMClassifier", "CatBoostClassifier", "XGBClassifier", "Keras/TensorFlow (Sequential models)", "PyTorch models"],
-            "cli_examples_freqai": [
-                "freqtrade trade --config config.json --strategy MyFreqAIStrategy",
-                "freqtrade list-freqaimodels --config config.json --strategy-list MyFreqAIStrategy",
-                "freqtrade download-data --timerange 20210101- --pairs ETH/BTC XRP/BTC --exchange binance",
-                "# Training is often done by the bot based on config, but manual triggers might be possible or via specific scripts."
-            ],
-            "reference": "https://www.freqtrade.io/en/stable/freqai/"
-        }
-        return content
+@mcp_server.tool("freqtrade.knowledge.freqAiOverview")
+def freqtrade_freqai_overview() -> Dict[str, Any]:
+    """Get an overview of FreqAI, its features, setup requirements, usage, modern vs. legacy considerations, and example model types."""
+    content = {
+        "summary": "FreqAI is Freqtrade's machine learning module, allowing for predictive trading models.",
+        "features": [
+            "Integration with popular ML libraries (Scikit-learn, Keras/TensorFlow, PyTorch, LightGBM, CatBoost, XGBoost).",
+            "Customizable data splitting and feature engineering.",
+            "Live prediction and retraining capabilities.",
+            "Support for various model types (classification, regression).",
+            "Advanced outlier detection and data drift analysis."
+        ],
+        "setup_requirements": [
+            "Ensure Freqtrade is installed with FreqAI dependencies (`pip install -r requirements-freqai.txt`).",
+            "Configure `freqai` section in your `config.json`.",
+            "Develop or adapt a strategy to work with FreqAI (implement `populate_any_indicators`, `feature_engineering_standard`, etc.).",
+            "Sufficient historical data for training."
+        ],
+        "usage_flow": [
+            "1. Data download and preparation.",
+            "2. Feature engineering within your strategy.",
+            "3. Model training (either manually via CLI or automatically by the bot).",
+            "4. Model deployment for live predictions.",
+            "5. Periodic retraining and monitoring."
+        ],
+        "modern_vs_legacy_freqai": "Always prefer Modern FreqAI. Legacy FreqAI is deprecated and has significant limitations. Modern FreqAI offers more flexibility, better data handling, and advanced features.",
+        "common_pitfalls": [
+            "Data leakage: Accidentally using future information during training.",
+            "Overfitting: Models perform well on training data but poorly on unseen data.",
+            "Insufficient data: Not enough historical data for robust model training.",
+            "Poor feature engineering: Features do not capture predictive signals.",
+            "Ignoring model interpretability: Not understanding why the model makes certain predictions."
+        ],
+        "example_model_types": ["RandomForestClassifier", "GradientBoostingClassifier", "LGBMClassifier", "CatBoostClassifier", "XGBClassifier", "Keras/TensorFlow (Sequential models)", "PyTorch models"],
+        "cli_examples_freqai": [
+            "freqtrade trade --config config.json --strategy MyFreqAIStrategy",
+            "freqtrade list-freqaimodels --config config.json --strategy-list MyFreqAIStrategy",
+            "freqtrade download-data --timerange 20210101- --pairs ETH/BTC XRP/BTC --exchange binance",
+            "# Training is often done by the bot based on config, but manual triggers might be possible or via specific scripts."
+        ],
+        "reference": "https://www.freqtrade.io/en/stable/freqai/"
+    }
+    return content
 
 # --- Source Code Exploration Tools ---
 
-class FilePathParams(BaseModel):
-    path: str = Field(..., description="Relative path within the Freqtrade source repository (e.g., 'freqtrade/main.py', 'docs/docs/configuration.md').")
-
-@app.tool()
-class FreqtradeGetFileContent(Tool[FilePathParams, Dict[str, str]]):
-    """Reads and returns the content of a specific file from the cloned Freqtrade source code repository."""
-    name = "freqtrade.source.getFileContent"
-    description = "Reads the content of a specified file from the Freqtrade source code (/freqtrade)."
+@mcp_server.tool("freqtrade.source.getFileContent")
+async def freqtrade_get_file_content(path: str) -> Dict[str, str]:
+    """Reads the content of a specified file from the Freqtrade source code (/freqtrade).
     
-    async def run(self, context: ToolContext, params: FilePathParams) -> Dict[str, str]:
-        target_file = os.path.join(FREQTRADE_SRC_PATH, params.path.lstrip('/'))
-        
-        if not os.path.abspath(target_file).startswith(os.path.abspath(FREQTRADE_SRC_PATH)):
-            logger.warning(f"Attempt to access path outside FREQTRADE_SRC_PATH: {params.path}")
-            raise HTTPException(status_code=403, detail="Access to path outside the source repository is forbidden.")
-
-        if not os.path.exists(target_file) or not os.path.isfile(target_file):
-            logger.warning(f"File not found or not a file: {target_file}")
-            raise HTTPException(status_code=404, detail=f"File not found: {params.path}")
-            
-        try:
-            with open(target_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-            logger.info(f"Successfully read file: {target_file}", extra={"props": {"file_path": params.path}})
-            return {"path": params.path, "content": content}
-        except Exception as e:
-            logger.error(f"Error reading file {target_file}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
-
-@app.tool()
-class FreqtradeListDirectory(Tool[FilePathParams, Dict[str, Union[str, List[str]]]]):
-    """Lists the contents (files and directories) of a specified directory within the cloned Freqtrade source code repository."""
-    name = "freqtrade.source.listDirectory"
-    description = "Lists contents of a directory within the Freqtrade source code (/freqtrade)."
-
-    async def run(self, context: ToolContext, params: FilePathParams) -> Dict[str, Union[str, List[str]]]:
-        target_dir = os.path.join(FREQTRADE_SRC_PATH, params.path.lstrip('/'))
-
-        if not os.path.abspath(target_dir).startswith(os.path.abspath(FREQTRADE_SRC_PATH)):
-            logger.warning(f"Attempt to access path outside FREQTRADE_SRC_PATH: {params.path}")
-            raise HTTPException(status_code=403, detail="Access to path outside the source repository is forbidden.")
-
-        if not os.path.exists(target_dir) or not os.path.isdir(target_dir):
-            logger.warning(f"Directory not found or not a directory: {target_dir}")
-            raise HTTPException(status_code=404, detail=f"Directory not found: {params.path}")
-
-        try:
-            entries = os.listdir(target_dir)
-            logger.info(f"Successfully listed directory: {target_dir}", extra={"props": {"dir_path": params.path, "entry_count": len(entries)}})
-            return {"path": params.path, "entries": entries}
-        except Exception as e:
-            logger.error(f"Error listing directory {target_dir}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Error listing directory: {str(e)}")
-
-
-# --- CLI-based Tools (Informational, not for live bot control) ---
-
-class FreqtradeCliCommandParams(BaseModel):
-    subcommand: str = Field(..., description="The Freqtrade subcommand to run (e.g., 'show-trades', 'list-strategies', 'test-pairlist').")
-    options: Optional[str] = Field("", description="Additional options for the Freqtrade command (e.g., '--strategy MyStrategy', '--config /freqtrade/config.json'). Note: config should point to the cloned repo's config if relevant.")
-
-@app.tool()
-class FreqtradeRunCliInfoCommand(Tool[FreqtradeCliCommandParams, Dict[str, Any]]):
+    Args:
+        path: Relative path within the Freqtrade source repository (e.g., 'freqtrade/main.py', 'docs/docs/configuration.md').
     """
-    Runs a Freqtrade CLI subcommand that is primarily for information gathering or validation.
-    This tool is NOT for starting bots, trading, or live operations.
-    It operates within the container, potentially using the Freqtrade source at /freqtrade.
-    Ensure any paths in 'options' (like --config) point to locations within the container.
-    Example: Use '/freqtrade/config.default.json' or a config from the Freqtrade installation.
-    """
-    name = "freqtrade.cli.runInfoCommand"
-    description = "Runs a Freqtrade CLI subcommand for informational purposes (e.g., list-strategies, test-pairlist). Not for live trading operations."
+    target_file = os.path.join(FREQTRADE_SRC_PATH, path.lstrip('/'))
+    
+    if not os.path.abspath(target_file).startswith(os.path.abspath(FREQTRADE_SRC_PATH)):
+        logger.warning(f"Attempt to access path outside FREQTRADE_SRC_PATH: {path}")
+        return {"error": "Access to path outside the source repository is forbidden."}
 
-    async def run(self, context: ToolContext, params: FreqtradeCliCommandParams) -> Dict[str, Any]:
-        # Basic validation for subcommand - extend as needed for security
-        allowed_info_subcommands = [
-            "list-strategies", "list-freqaimodels", "list-hyperopts", "list-pairs", "list-timeframes",
-            "show-config", "show-trades", "test-pairlist", "plot-dataframe", "plot-profit",
-            "strategy-utils", # Be cautious with sub-options here
-            "hyperopt-list", "hyperopt-show" # Freqtrade has hyperopt commands too
-        ]
-        # A more robust check would involve regex or more granular whitelisting if subcommands have dangerous options.
-        if params.subcommand.split(' ')[0] not in allowed_info_subcommands:
-            logger.warning(f"Disallowed Freqtrade CLI subcommand attempted: {params.subcommand}")
-            raise HTTPException(status_code=403, detail=f"Subcommand '{params.subcommand}' is not allowed for this informational tool.")
-
-        command_str = f"freqtrade {params.subcommand} {params.options}"
+    if not os.path.exists(target_file) or not os.path.isfile(target_file):
+        logger.warning(f"File not found or not a file: {target_file}")
+        return {"error": f"File not found: {path}"}
         
-        # Most Freqtrade CLI commands expect to be run from a directory with a user_data, or a config.
-        # For informational commands, we can point to the cloned source.
-        # It's safer to run them from a neutral directory unless a specific CWD is required by the command.
-        working_dir = FREQTRADE_SRC_PATH # Run from the cloned source directory
+    try:
+        with open(target_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        logger.info(f"Successfully read file: {target_file}", extra={"props": {"file_path": path}})
+        return {"path": path, "content": content}
+    except Exception as e:
+        logger.error(f"Error reading file {target_file}: {e}", exc_info=True)
+        return {"error": f"Error reading file: {str(e)}"}
 
-        exit_code, stdout, stderr = await run_local_command(command_str, working_dir=working_dir)
+@mcp_server.tool("freqtrade.source.listDirectory")
+async def freqtrade_list_directory(path: str) -> Dict[str, Union[str, List[str]]]:
+    """Lists contents of a directory within the Freqtrade source code (/freqtrade).
+    
+    Args:
+        path: Relative path within the Freqtrade source repository.
+    """
+    target_dir = os.path.join(FREQTRADE_SRC_PATH, path.lstrip('/'))
 
-        if exit_code == 0:
-            return {"status": "success", "subcommand": params.subcommand, "options": params.options, "output": stdout}
-        else:
-            return {"status": "error", "subcommand": params.subcommand, "options": params.options, "error_message": stderr, "output": stdout}
+    if not os.path.abspath(target_dir).startswith(os.path.abspath(FREQTRADE_SRC_PATH)):
+        logger.warning(f"Attempt to access path outside FREQTRADE_SRC_PATH: {path}")
+        return {"error": "Access to path outside the source repository is forbidden."}
+
+    if not os.path.exists(target_dir) or not os.path.isdir(target_dir):
+        logger.warning(f"Directory not found or not a directory: {target_dir}")
+        return {"error": f"Directory not found: {path}"}
+
+    try:
+        contents = os.listdir(target_dir)
+        dirs = [item for item in contents if os.path.isdir(os.path.join(target_dir, item))]
+        files = [item for item in contents if os.path.isfile(os.path.join(target_dir, item))]
+        
+        logger.info(f"Listed directory: {target_dir}", extra={"props": {"dir_path": path, "dirs_count": len(dirs), "files_count": len(files)}})
+        return {
+            "path": path,
+            "directories": sorted(dirs),
+            "files": sorted(files)
+        }
+    except Exception as e:
+        logger.error(f"Error listing directory {target_dir}: {e}", exc_info=True)
+        return {"error": f"Error listing directory: {str(e)}"}
+
+@mcp_server.tool("freqtrade.cli.runInfoCommand")
+async def freqtrade_run_cli_info_command(subcommand: str, options: Optional[List[str]] = None) -> Dict[str, Any]:
+    """Run informational Freqtrade CLI commands within the container.
+    
+    Args:
+        subcommand: The Freqtrade subcommand (e.g., 'list-exchanges', 'list-strategies', 'show-config').
+        options: Additional command-line options.
+    
+    Note: Only informational commands are allowed.
+    """
+    ALLOWED_INFO_SUBCOMMANDS = [
+        'list-exchanges', 'list-markets', 'list-pairs', 'list-strategies',
+        'list-hyperoptloss', 'list-freqaimodels', 'list-timeframes', 
+        'show-config', '--version', '--help'
+    ]
+    
+    if subcommand not in ALLOWED_INFO_SUBCOMMANDS:
+        logger.warning(f"Attempted to run disallowed command: {subcommand}")
+        return {"error": f"Command '{subcommand}' is not allowed. Only informational commands are permitted."}
+    
+    # Build the full command
+    full_command = f"freqtrade {subcommand}"
+    if options:
+        sanitized_options = [shlex.quote(opt) for opt in options]
+        full_command += " " + " ".join(sanitized_options)
+    
+    logger.info(f"Running Freqtrade CLI command: {full_command}")
+    
+    return_code, stdout, stderr = await run_local_command(full_command, working_dir=FREQTRADE_SRC_PATH)
+    
+    if return_code == 0:
+        return {"status": "success", "subcommand": subcommand, "options": options, "output": stdout}
+    else:
+        return {"status": "error", "subcommand": subcommand, "options": options, "error_message": stderr, "output": stdout}
 
 
-# --- Health Check (Standard) ---
-@app.get("/health")
-async def health_check():
+# --- Health Check ---
+async def health_check(request):
     logger.debug("Health check requested")
-    # This service doesn't directly connect to the Freqtrade API anymore,
-    # so its health is based on its own status and access to the cloned repo.
-    repo_accessible = os.path.exists(os.path.join(FREQTRADE_SRC_PATH, "README.md"))
+    repo_accessible = os.path.exists(os.path.join(FREQTRADE_SRC_PATH, "LICENSE"))
     status = "healthy" if repo_accessible else "degraded"
     
-    return {
+    return JSONResponse({
         "status": status, 
         "service": SERVICE_NAME, 
         "timestamp": dt.now().isoformat(),
         "checks": {
             "freqtrade_repo_access": "accessible" if repo_accessible else "inaccessible"
         }
-    }
+    })
 
+# --- Main Execution ---
 if __name__ == "__main__":
+    logger.info(f"Starting {SERVICE_NAME} on port {MCP_PORT}")
+    
+    # Get the SSE app from FastMCP
+    app = mcp_server.sse_app()
+    
+    # Add health check route
+    if not any(r.path == "/health" for r in getattr(app, 'routes', [])):
+        if hasattr(app, 'routes') and isinstance(app.routes, list):
+            app.routes.append(Route("/health", health_check))
+            logger.info("Health check route added")
+    
+    # Run the server
     log_level_env = os.getenv("LOG_LEVEL", "INFO").lower()
-    uvicorn.run(app, host="0.0.0.0", port=MCP_PORT, log_level=log_level_env) 
+    uvicorn.run(app, host="0.0.0.0", port=MCP_PORT, log_level=log_level_env)

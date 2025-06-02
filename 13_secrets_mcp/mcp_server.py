@@ -149,7 +149,7 @@ def initialize_backends():
 
 initialize_backends()
 
-mcp_server = FastMCP(name="secrets-service", port=MCP_PORT)
+mcp_server = FastMCP(name="secrets-service", port=MCP_PORT, host="0.0.0.0")
 
 # --- Health Check Endpoint ---
 async def health_check(request): # Starlette request argument

@@ -1,21 +1,30 @@
 FROM python:3.11-slim
 
+# Install git (required by aider)
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 # Set working directory
 WORKDIR /app
 
-# Install aider-mcp-server
-RUN pip install --no-cache-dir mseep-aider-mcp-server
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose the default MCP port for this service (can be overridden)
+# Copy the server implementation
+COPY . .
+
+# Make entrypoint executable
+RUN chmod +x /app/entrypoint.sh
+
+# Expose the default MCP port for this service
 EXPOSE 8014
 
-# Environment variable for the repository Aider will work on
+# Environment variables
 ENV REPO_PATH=/workspace
 ENV MCP_PORT=8014
-# ENV OPENAI_API_KEY="" # Optional: Set via docker-compose
-# ENV ANTHROPIC_API_KEY="" # Optional: Set via docker-compose
 
-# Command to run the Aider MCP server
-# It will listen on 0.0.0.0 inside the container on MCP_PORT
-# The --repo-path will use the REPO_PATH environment variable
-CMD ["aider-mcp-server", "--repo-path", "$REPO_PATH"] 
+# Create workspace directory
+RUN mkdir -p /workspace
+
+# Use entrypoint script
+ENTRYPOINT ["/app/entrypoint.sh"] 

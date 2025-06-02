@@ -4,8 +4,9 @@ import json
 from datetime import datetime as dt
 from typing import Optional, List, Dict, Any, Literal
 
-from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel, Field
+from fastmcp import FastMCP
+from starlette.routing import Route
+from starlette.responses import JSONResponse
 import uvicorn
 
 # LLM SDKs
@@ -84,135 +85,191 @@ else:
 
 
 # --- FastMCP Server Setup ---
-from fastmcp import FastMCP, Tool, ToolContext
+mcp_server = FastMCP(name="ai-models-mcp", port=MCP_PORT, host="0.0.0.0")
 
-app = FastMCP(
-    title="AI Models MCP",
-    description="Provides tools to interact with various Large Language Models (LLMs) like Gemini and Anthropic.",
-    version="0.1.0",
-    service_name=SERVICE_NAME_FOR_LOGGING,
-)
+# --- Tool Definitions ---
 
-# --- Model Parameters ---
-
-class GeminiGenerateContentParams(BaseModel):
-    model_name: str = Field(default="gemini-1.5-flash-latest", description="The Gemini model to use (e.g., 'gemini-1.5-flash-latest', 'gemini-pro').")
-    prompt: str = Field(..., description="The text prompt to send to the model.")
-    temperature: Optional[float] = Field(default=None, description="Controls randomness. Lower for more predictable, higher for more creative.")
-    max_output_tokens: Optional[int] = Field(default=None, description="Maximum number of tokens to generate.")
-
-class AnthropicCreateMessageParams(BaseModel):
-    model_name: str = Field(default="claude-3-haiku-20240307", description="The Anthropic model to use (e.g., 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307').")
-    system_prompt: Optional[str] = Field(default=None, description="System prompt to guide the model's behavior.")
-    messages: List[Dict[str, str]] = Field(..., description="A list of message objects, e.g., [{'role': 'user', 'content': 'Hello'}].")
-    max_tokens: int = Field(default=1024, description="Maximum number of tokens to generate in the response.")
-    temperature: Optional[float] = Field(default=None, description="Controls randomness. Between 0.0 and 1.0.")
-
-# --- AI Model Tools ---
-
-@app.tool()
-class GeminiGenerateContent(Tool[GeminiGenerateContentParams, Dict[str, Any]]):
-    """Generates content using a specified Google Gemini model."""
-    name = "ai.models.gemini.generateContent"
-    description = "Generates text content using Google's Gemini models."
-
-    async def run(self, context: ToolContext, params: GeminiGenerateContentParams) -> Dict[str, Any]:
-        if not GEMINI_API_KEY:
-            logger.error("Gemini API key not configured.")
-            raise HTTPException(status_code=500, detail="Gemini API key not configured on the server.")
-        
-        try:
-            logger.info(f"Calling Gemini model {params.model_name} with prompt starting: {params.prompt[:100]}...", 
-                        extra={"props": {"model": params.model_name}})
-            model = genai.GenerativeModel(params.model_name)
-            generation_config = {}
-            if params.temperature is not None:
-                generation_config['temperature'] = params.temperature
-            if params.max_output_tokens is not None:
-                generation_config['max_output_tokens'] = params.max_output_tokens
-            
-            response = await model.generate_content_async(params.prompt, generation_config=generation_config if generation_config else None)
-            
-            generated_text = response.text
-            logger.info(f"Gemini ({params.model_name}) generated response successfully.")
-            return {"model": params.model_name, "generated_text": generated_text, "finish_reason": str(response.candidates[0].finish_reason) if response.candidates else None}
-        except Exception as e:
-            logger.error(f"Error calling Gemini API: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Error calling Gemini API: {str(e)}")
-
-@app.tool()
-class AnthropicCreateMessage(Tool[AnthropicCreateMessageParams, Dict[str, Any]]):
-    """Creates a message using a specified Anthropic Claude model."""
-    name = "ai.models.anthropic.createMessage"
-    description = "Sends a message to Anthropic's Claude models and gets a response."
-
-    async def run(self, context: ToolContext, params: AnthropicCreateMessageParams) -> Dict[str, Any]:
-        if not anthropic_client:
-            logger.error("Anthropic API key not configured or client not initialized.")
-            raise HTTPException(status_code=500, detail="Anthropic API key not configured or client not initialized on the server.")
-        
-        try:
-            logger.info(f"Calling Anthropic model {params.model_name} with messages: {params.messages}", 
-                        extra={"props": {"model": params.model_name}})
-            
-            api_params = {
-                "model": params.model_name,
-                "max_tokens": params.max_tokens,
-                "messages": params.messages,
-            }
-            if params.system_prompt:
-                api_params["system"] = params.system_prompt
-            if params.temperature is not None:
-                api_params["temperature"] = params.temperature
-
-            response = anthropic_client.messages.create(**api_params)
-            
-            response_content = ""
-            if response.content and isinstance(response.content, list):
-                for block in response.content:
-                    if hasattr(block, 'text'):
-                        response_content += block.text
-            
-            logger.info(f"Anthropic ({params.model_name}) generated response successfully.")
-            return {
-                "model": params.model_name, 
-                "response_id": response.id, 
-                "role": response.role,
-                "content": response_content,
-                "stop_reason": response.stop_reason,
-                "usage": {"input_tokens": response.usage.input_tokens, "output_tokens": response.usage.output_tokens}
-            }
-        except AnthropicError as e:
-            logger.error(f"Error calling Anthropic API: {e}", exc_info=True)
-            raise HTTPException(status_code=e.status_code if hasattr(e, 'status_code') else 500, detail=f"Anthropic API Error: {str(e)}")
-        except Exception as e:
-            logger.error(f"Unexpected error calling Anthropic API: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Unexpected error calling Anthropic API: {str(e)}")
-
-# --- Health Check (Standard) ---
-@app.get("/health")
-async def health_check():
-    logger.debug("Health check requested")
-    # Check if API keys are at least found (doesn't validate them)
-    gemini_configured = bool(GEMINI_API_KEY)
-    anthropic_configured = bool(ANTHROPIC_API_KEY and anthropic_client)
+@mcp_server.tool("ai.models.gemini.generateContent")
+def gemini_generate_content(
+    prompt: str,
+    model_name: str = "gemini-1.5-flash-latest",
+    temperature: Optional[float] = None,
+    max_output_tokens: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Generate content using Gemini models.
     
-    status = "healthy"
-    if not gemini_configured and not anthropic_configured:
-        status = "unhealthy" # Or "degraded" if some functionality is still possible
-    elif not gemini_configured or not anthropic_configured:
-        status = "degraded"
+    Args:
+        prompt: The text prompt to send to the model.
+        model_name: The Gemini model to use (e.g., 'gemini-1.5-flash-latest', 'gemini-pro').
+        temperature: Controls randomness in generation (0.0 to 1.0).
+        max_output_tokens: Maximum number of tokens to generate.
+    
+    Returns:
+        Generated text or error message.
+    """
+    if not GEMINI_API_KEY:
+        logger.error("Gemini API Key not configured.")
+        return {"error": "Gemini API Key not configured. Cannot call Gemini models."}
+    
+    try:
+        # Configure generation settings
+        generation_config = {}
+        if temperature is not None:
+            generation_config["temperature"] = temperature
+        if max_output_tokens is not None:
+            generation_config["max_output_tokens"] = max_output_tokens
         
-    return {
-        "status": status, 
-        "service": SERVICE_NAME_FOR_LOGGING, 
-        "timestamp": dt.now().isoformat(),
-        "checks": {
-            "gemini_api_key_found": gemini_configured,
-            "anthropic_api_key_found": anthropic_configured
+        # Initialize model
+        model = genai.GenerativeModel(model_name)
+        
+        # Generate content
+        response = model.generate_content(
+            prompt,
+            generation_config=generation_config if generation_config else None
+        )
+        
+        logger.info(f"Gemini content generated successfully with model: {model_name}",
+                   extra={"props": {"model": model_name, "prompt_length": len(prompt)}})
+        
+        return {
+            "model": model_name,
+            "generated_text": response.text,
+            "prompt_tokens": None,  # Gemini doesn't provide token counts in the same way
+            "completion_tokens": None,
+            "total_tokens": None
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating content with Gemini: {e}", exc_info=True)
+        return {"error": f"Error generating content: {str(e)}"}
+
+@mcp_server.tool("ai.models.anthropic.createMessage")
+def anthropic_create_message(
+    prompt: str,
+    model: str = "claude-3-haiku-20240307",
+    max_tokens: int = 1024,
+    temperature: Optional[float] = None,
+    system: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Create a message using Anthropic's Claude models.
+    
+    Args:
+        prompt: The user message to send to Claude.
+        model: The Claude model to use (e.g., 'claude-3-haiku-20240307', 'claude-3-5-sonnet-20241022').
+        max_tokens: Maximum number of tokens to generate.
+        temperature: Controls randomness in generation (0.0 to 1.0).
+        system: Optional system message to set context.
+    
+    Returns:
+        Generated message or error.
+    """
+    if not anthropic_client:
+        logger.error("Anthropic client not initialized.")
+        return {"error": "Anthropic API Key not configured. Cannot call Claude models."}
+    
+    try:
+        # Build message
+        messages = [{"role": "user", "content": prompt}]
+        
+        # Create request parameters
+        params = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "messages": messages
+        }
+        
+        if temperature is not None:
+            params["temperature"] = temperature
+        if system:
+            params["system"] = system
+        
+        # Create message
+        response = anthropic_client.messages.create(**params)
+        
+        logger.info(f"Anthropic message created successfully with model: {model}",
+                   extra={"props": {"model": model, "prompt_length": len(prompt)}})
+        
+        return {
+            "model": model,
+            "response": response.content[0].text if response.content else "",
+            "input_tokens": response.usage.input_tokens if hasattr(response, 'usage') else None,
+            "output_tokens": response.usage.output_tokens if hasattr(response, 'usage') else None,
+            "stop_reason": response.stop_reason if hasattr(response, 'stop_reason') else None
+        }
+        
+    except AnthropicError as e:
+        logger.error(f"Anthropic API error: {e}", exc_info=True)
+        return {"error": f"Anthropic API error: {str(e)}"}
+    except Exception as e:
+        logger.error(f"Error creating message with Anthropic: {e}", exc_info=True)
+        return {"error": f"Error creating message: {str(e)}"}
+
+@mcp_server.tool("ai.models.listAvailable")
+def list_available_models() -> Dict[str, Any]:
+    """
+    List available AI models and their status.
+    
+    Returns:
+        Dictionary of available models and their configuration status.
+    """
+    available_models = {
+        "gemini": {
+            "configured": bool(GEMINI_API_KEY),
+            "models": [
+                "gemini-1.5-flash-latest",
+                "gemini-1.5-flash",
+                "gemini-1.5-pro-latest", 
+                "gemini-1.5-pro",
+                "gemini-pro"
+            ] if GEMINI_API_KEY else []
+        },
+        "anthropic": {
+            "configured": bool(anthropic_client),
+            "models": [
+                "claude-3-5-sonnet-20241022",
+                "claude-3-5-haiku-20241022",
+                "claude-3-opus-20240229",
+                "claude-3-sonnet-20240229",
+                "claude-3-haiku-20240307"
+            ] if anthropic_client else []
         }
     }
+    
+    logger.info("Listed available models",
+               extra={"props": {"gemini_configured": available_models["gemini"]["configured"],
+                               "anthropic_configured": available_models["anthropic"]["configured"]}})
+    
+    return available_models
 
+# --- Health Check Endpoint ---
+async def health_check(request):
+    gemini_status = "configured" if GEMINI_API_KEY else "not_configured"
+    anthropic_status = "configured" if anthropic_client else "not_configured"
+    
+    return JSONResponse({
+        "status": "healthy",
+        "service": SERVICE_NAME_FOR_LOGGING,
+        "timestamp": dt.now().isoformat(),
+        "models": {
+            "gemini": gemini_status,
+            "anthropic": anthropic_status
+        }
+    })
+
+# --- Main Execution ---
 if __name__ == "__main__":
-    log_level_env = os.getenv("LOG_LEVEL", "INFO").lower()
-    uvicorn.run(app, host="0.0.0.0", port=MCP_PORT, log_level=log_level_env) 
+    logger.info(f"Starting {SERVICE_NAME_FOR_LOGGING} on port {MCP_PORT}")
+    
+    # Get the SSE app from FastMCP
+    app = mcp_server.sse_app()
+    
+    # Add health check route
+    if not any(r.path == "/health" for r in getattr(app, 'routes', [])):
+        if hasattr(app, 'routes') and isinstance(app.routes, list):
+            app.routes.append(Route("/health", health_check))
+            logger.info("Health check route added")
+    
+    # Run the server
+    uvicorn.run(app, host="0.0.0.0", port=MCP_PORT, log_level="info")

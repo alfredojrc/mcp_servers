@@ -69,14 +69,14 @@ root_logger.setLevel(logging.INFO)
 logger = logging.getLogger(__name__) # Module-specific logger, inherits root config
 
 # --- Configuration ---
-MCP_PORT = int(os.getenv("MCP_PORT", 5012))
+MCP_PORT = int(os.getenv("MCP_PORT", 8012))
 LOCAL_CMDB_PATH = os.getenv("LOCAL_CMDB_PATH", "/data/cmdb.csv") # Example: CSV
 SERVICENOW_INSTANCE = os.getenv("SERVICENOW_INSTANCE")
 SERVICENOW_USER = os.getenv("SERVICENOW_USER")
 SERVICENOW_PASSWORD_SECRET_PATH = os.getenv("SERVICENOW_PASSWORD_SECRET_PATH", "/run/secrets/servicenow_password")
 
 # --- Backend Initialization --- 
-mcp_server = FastMCP(name="cmdb-service", port=MCP_PORT)
+mcp_server = FastMCP(name="cmdb-service", port=MCP_PORT, host="0.0.0.0")
 local_cmdb_data = None
 snow_client = None
 

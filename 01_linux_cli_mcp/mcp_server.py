@@ -95,7 +95,7 @@ TOOL_ERRORS_TOTAL = Counter('mcp_tool_errors_total', 'Total errors encountered d
 # ACTIVE_CONNECTIONS = Gauge('mcp_active_connections', 'Number of active MCP connections')
 
 # Initialize FastMCP server
-mcp_server = FastMCP(name="linux-cli-service", port=MCP_PORT)
+mcp_server = FastMCP(name="linux-cli-service", port=MCP_PORT, host="0.0.0.0")
 
 # --- Security Validator Class ---
 class SecurityValidator:

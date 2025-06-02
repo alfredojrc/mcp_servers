@@ -71,7 +71,7 @@ services:
       # Configure SSH to aicrusher:
       - SSH_HOSTS=aicrusher # Add other hosts comma-separated if needed
       - SSH_USER=jeriko
-      - SSH_KEY_SECRET_PATH=/secrets/aicrusher_jeriko_id_rsa # Path inside container to SSH private key
+      - SSH_KEY_SECRET_PATH=/secrets/aicrusher_jeriko_id_rsa/id_rsa # Path inside container to SSH private key file
     volumes:
       # Mount secrets read-only
       - ./secrets:/secrets:ro
@@ -83,6 +83,8 @@ services:
       # - ./secrets/linux_ssh_key:/secrets/linux_ssh_key:ro
     networks:
       - mcp-network
+    extra_hosts:
+      - "aicrusher:192.168.68.100"
     restart: unless-stopped
     # Add privileged: true ONLY if managing the Docker host via socket mount
     # privileged: true 

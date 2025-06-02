@@ -1,0 +1,39 @@
+# macOS-specific overrides for laptop deployment
+version: '3.8'
+
+services:
+  # Master MCP
+  00_master_mcp:
+    environment:
+      - PLATFORM=macos
+
+  # Linux CLI - configured for SSH to remote hosts
+  01_linux_cli_mcp:
+    environment:
+      - PLATFORM=macos
+      - SSH_HOSTS=aicrusher
+      - SSH_USER=jeriko
+    volumes:
+      - ./secrets/aicrusher_jeriko_id_rsa/id_rsa:/secrets/aicrusher_jeriko_id_rsa:ro
+      - /Users/alf:/workspace/home
+
+  # macOS service enabled
+  10_macos_mcp:
+    build: ./10_macos_mcp
+    container_name: macos_mcp_10
+    environment:
+      - MCP_PORT=8010
+    ports:
+      - "8010:8010"
+    networks:
+      - mcp-network
+    restart: unless-stopped
+
+  # Keep cloud services for remote management
+  03_azure_mcp:
+    deploy:
+      replicas: 1
+  
+  04_google_cloud_mcp:
+    deploy:
+      replicas: 1

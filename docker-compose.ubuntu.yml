@@ -1,0 +1,45 @@
+# Ubuntu-specific overrides for aicrusher deployment
+version: '3.8'
+
+services:
+  # Master MCP - minimal changes
+  00_master_mcp:
+    environment:
+      - PLATFORM=ubuntu
+
+  # Linux CLI - optimized for Ubuntu
+  01_linux_cli_mcp:
+    environment:
+      - PLATFORM=ubuntu
+      - PACKAGE_MANAGER=apt
+      # Local execution, no SSH needed
+      - SSH_HOSTS=
+      - SSH_USER=
+    volumes:
+      # Remove SSH key mount for local execution
+      - /home/jeriko:/workspace/home
+
+  # Skip macOS service on Ubuntu
+  10_macos_mcp:
+    deploy:
+      replicas: 0
+
+  # Freqtrade - direct local access
+  15_freqtrade_mcp:
+    volumes:
+      - /home/jeriko/freqtrade_ai:/workspace/freqtrade
+      - /data/claudefreq:/workspace/claudefreq
+      - /data/geminifreq:/workspace/geminifreq
+
+  # Local services don't need these
+  02_windows_mcp:
+    deploy:
+      replicas: 0
+  
+  03_azure_mcp:
+    deploy:
+      replicas: 0
+  
+  04_google_cloud_mcp:
+    deploy:
+      replicas: 0

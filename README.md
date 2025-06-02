@@ -119,7 +119,8 @@ Each service implements an MCP server with official SDKs (Python, TypeScript, Go
 | `12_cmdb_mcp`           | Interact with Configuration Management Database | `cmdb.queryAssets`, `cmdb.servicenow.getIncident` |
 | `13_secrets_mcp`        | Manage secrets securely                     | `secrets.get`, `secrets.keepass.getPassword`    |
 | `14_aider_mcp`          | AI coding assistant tasks                   | `aider.editFile`, `aider.runTests`                |
-| `15_freqtrade_mcp`      | Advanced Freqtrade trading with FreqAI/Hyperopt | `trading.freqtrade.api.getStatus`, `trading.freqtrade.cli.runHyperopt` |
+| `15_freqtrade_mcp`      | Freqtrade knowledge, source code exploration | `trading.freqtrade.knowledge.hyperoptBestPractices`, `trading.freqtrade.source.getFileContent` |
+| `16_ai_models_mcp`      | Interface with LLMs (Gemini, Anthropic)   | `ai.models.gemini.generateContent`, `ai.models.anthropic.createMessage` |
 
 For a Kubernetes reference implementation, see [mcp-server-kubernetes](https://github.com/Flux159/mcp-server-kubernetes).
 
@@ -138,23 +139,24 @@ For a Kubernetes reference implementation, see [mcp-server-kubernetes](https://g
 
 ## Available MCP Services
 
-| Service Name            | Port | Description                       |
-|-------------------------|------|-----------------------------------|
-| `00_master_mcp`         | 8000 | Orchestrator (MCP Host)           |
-| `01_linux_cli_mcp`      | 8001 | Linux shell command execution     |
-| `02_windows_mcp`        | 8002 | Windows PowerShell execution      |
-| `03_azure_mcp`          | 8003 | Azure resource management         |
-| `04_google_cloud_mcp`   | 8004 | Google Cloud resource management  |
-| `05_vmware_mcp`         | 8005 | VMware infrastructure management  |
-| `06_web_search_mcp`     | 8006 | Web search capabilities           |
-| `07_web_Browse_mcp`   | 8007 | Web Browse/navigation           |
-| `08_k8s_mcp`            | 8008 | Kubernetes cluster operations     |
-| `09_n8n_mcp`            | 8009 | n8n workflow orchestration        |
-| `10_macos_mcp`          | 8010 | macOS system operations           |
-| `12_cmdb_mcp`           | 8012 | Configuration Management Database |
-| `13_secrets_mcp`        | 8013 | Secrets Management Interface      |
-| `14_aider_mcp`          | 8014 | AI coding assistant service       |
-| `15_freqtrade_mcp`      | 8015 | Freqtrade API & CLI Service       |
+| Service Name            | Port | Description                                 |
+|-------------------------|------|---------------------------------------------|
+| `00_master_mcp`         | 8000 | Orchestrator (MCP Host)                     |
+| `01_linux_cli_mcp`      | 8001 | Linux shell command execution               |
+| `02_windows_mcp`        | 8002 | Windows PowerShell execution                |
+| `03_azure_mcp`          | 8003 | Azure resource management                   |
+| `04_google_cloud_mcp`   | 8004 | Google Cloud resource management            |
+| `05_vmware_mcp`         | 8005 | VMware infrastructure management            |
+| `06_web_search_mcp`     | 8006 | Web search capabilities                     |
+| `07_web_Browse_mcp`   | 8007 | Web Browse/navigation                     |
+| `08_k8s_mcp`            | 8008 | Kubernetes cluster operations               |
+| `09_n8n_mcp`            | 8009 | n8n workflow orchestration                  |
+| `10_macos_mcp`          | 8010 | macOS system operations                     |
+| `12_cmdb_mcp`           | 8012 | Configuration Management Database           |
+| `13_secrets_mcp`        | 8013 | Secrets Management Interface                |
+| `14_aider_mcp`          | 8014 | AI coding assistant service                 |
+| `15_freqtrade_mcp`      | 8015 | Freqtrade Knowledge & Source Hub            |
+| `16_ai_models_mcp`      | 8016 | AI Models (Gemini, Anthropic) Gateway       |
 
 ## Operating Principles
 

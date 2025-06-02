@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pydantic
+
+# MCP Server Library (replace with actual if different, e.g., fastmcp)
+fastmcp
+
+# LLM SDKs
+google-generativeai
+anthropic
+
+# Utilities
+python-dotenv # For local development if managing API keys via .env 

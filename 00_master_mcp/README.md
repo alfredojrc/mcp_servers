@@ -1,6 +1,7 @@
 # 00_master_mcp (Port 8000)
 
 ## Purpose
+
 `00_master_mcp` is the *central orchestrator* of the entire multi‑agent system.  It runs as the **MCP Host** and coordinates all downstream MCP service containers (servers).  
 Its responsibilities include:
 
@@ -10,13 +11,13 @@ Its responsibilities include:
 4. Orchestrating complex workflows that span multiple services (e.g. *query Azure ⇒ ssh to VM ⇒ run k8s helm upgrade*).
 5. Providing a single SSE endpoint (`:8000`) so external tools (e.g. Cursor, Claude Desktop) can attach to **one** host and indirectly reach every internal server.
 
-> **Reference**: MCP host / client / server architecture in the official spec ([modelcontextprotocol.io – Architecture](https://modelcontextprotocol.io/specification/2025-03-26/architecture)).
+> **Reference**: MCP host / client / server architecture in the official spec ([modelcontextprotocol.io – Architecture](https://modelcontextprotocol.io/specification/2025-03-26/architecture)).
 
 ---
 
 ## Container Layout
 
-```
+```text
 00_master_mcp/
 ├── Dockerfile
 ├── entrypoint.sh
@@ -26,6 +27,7 @@ Its responsibilities include:
 ```
 
 ### Dockerfile (sketch)
+
 ```dockerfile
 FROM python:3.12-slim
 WORKDIR /workspace
@@ -36,6 +38,7 @@ ENTRYPOINT ["/workspace/entrypoint.sh"]
 ```
 
 ### entrypoint.sh (sketch)
+
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
@@ -115,7 +118,8 @@ While MCP traditionally connects host→servers in a **flat** topology, the `00_
 - **Subsystem Granularity (e.g., within `os.linux`):** Instead of creating separate MCP servers for every Linux service (Ceph, Nginx, MTA, SFTP, etc.), we leverage the `01_linux_cli_mcp` server's ability to run commands and interact with the filesystem. Tools specific to these subsystems are organized under further sub-namespaces within `os.linux.*`, providing structure without excessive container proliferation.
 
 ### Proposed Layout Example
-```
+
+```text
 master (:8000)
  ├─ os
  │  ├─ linux           (01_linux_cli_mcp:8001)
@@ -148,5 +152,5 @@ master (:8000)
     └─ gcp_sm.*      # Tools for Google Secret Manager backend
 ```
 
-*   Each leaf node represents a tool (e.g., `os.linux.ceph.getStatus`, `cmdb.local.getServerInfo`, `secrets.keepass.getEntry`).
-*   Implementation: Adjust `DEFAULT_SERVERS` keys in `mcp_host.py` to match the desired top-level namespaces (e.g., `DEFAULT_SERVERS = {"os.linux": "http://01_linux_cli_mcp:8001", ...}`) and ensure the downstream servers (like `01_linux_cli_mcp`) correctly register their tools with the appropriate sub-namespaces.
+- Each leaf node represents a tool (e.g., `os.linux.ceph.getStatus`, `cmdb.local.getServerInfo`, `secrets.keepass.getEntry`).
+- Implementation: Adjust `DEFAULT_SERVERS` keys in `mcp_host.py` to match the desired top-level namespaces (e.g., `DEFAULT_SERVERS = {"os.linux": "http://01_linux_cli_mcp:8001", ...}`) and ensure the downstream servers (like `01_linux_cli_mcp`) correctly register their tools with the appropriate sub-namespaces.

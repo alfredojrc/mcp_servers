@@ -3,6 +3,7 @@
 # Core MCP libraries
 fastmcp==2.2.0
 uvicorn==0.34.2
+fastapi # Added FastAPI
 httpx # For Freqtrade REST API calls
 
 # Freqtrade (latest stable recommended)

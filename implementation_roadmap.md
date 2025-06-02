@@ -124,26 +124,22 @@ Further review of the guide will inform ongoing and future development tasks to 
 
 ## Phase 1: Core Infrastructure (Week 2-3)
 
-### Day 1-3: Enhanced Master Orchestrator
+### Day 1-3: Enhanced Master Orchestrator & Initial Service Integrations
 - [x] Implemented placeholder classes for `EnhancedMCPHost`, `MCPServiceClient`, and `WorkflowEngine` in `00_master_mcp/mcp_host.py`.
-  - `EnhancedMCPHost` initializes `WorkflowEngine` and `MCPServiceClient`.
-  - Registered a tool `orchestrator.executeWorkflow` with the master MCP instance.
 - [x] Implemented `MCPServiceClient` in `00_master_mcp/mcp_host.py` using `httpx`.
-  - Client is configured to communicate with the master orchestrator's own MCP endpoint for proxied calls.
 - [x] Implemented initial `WorkflowEngine` logic in `00_master_mcp/mcp_host.py`.
-  - Engine uses `MCPServiceClient` to call tools on proxied services via the master orchestrator.
-  - Includes basic sequential step execution and error handling (stops on first error).
-- [ ] Test `orchestrator.executeWorkflow` tool with a sample workflow to verify inter-service tool calls via the master proxy.
+- [ ] Test `orchestrator.executeWorkflow` tool with a sample workflow.
   - [ ] Create a test script in `tests/00_master_mcp/`.
-  - [ ] Define a sample workflow involving calls to multiple services (e.g., linux, secrets, cmdb).
+  - [ ] Define a sample workflow involving calls to multiple services (e.g., linux, secrets, cmdb, ai.models).
   - [ ] Verify successful execution and error handling.
-- [x] Added `aicrusher` details to `12_cmdb_mcp/data/cmdb.csv`.
-- [x] Configured `01_linux_cli_mcp` in `docker-compose.yml` with SSH parameters (host, user, key path) and volume mount for the key.
-- [x] Updated `01_linux_cli_mcp/Dockerfile` to ensure `openssh-client` is installed (verified it was already present).
-- [x] Implemented `linux.sshExecuteCommand` tool in `01_linux_cli_mcp/mcp_server.py` to handle SSH connections and command execution using configured parameters.
-- [x] Documented SSH configuration and new tool in `01_linux_cli_mcp/README.md` and updated main `README.md`.
-- [ ] (Manual User Task) Place SSH private key in `./secrets/aicrusher_jeriko_id_rsa` and ensure public key is on `aicrusher`.
-- [ ] Test `linux.sshExecuteCommand` tool to connect to `aicrusher` and list `/home/jeriko/freqtrade_ai/`.
+- [x] Configure and test SSH access for `01_linux_cli_mcp` to `aicrusher` (steps mostly done, pending user key placement & final test).
+  - [x] Added `aicrusher` details to `12_cmdb_mcp/data/cmdb.csv`.
+  - [x] Configured `01_linux_cli_mcp` in `docker-compose.yml` with SSH parameters and volume mount.
+  - [x] Verified `openssh-client` in `01_linux_cli_mcp/Dockerfile`.
+  - [x] Implemented `linux.sshExecuteCommand` tool in `01_linux_cli_mcp/mcp_server.py`.
+  - [x] Documented SSH configuration and new tool in `01_linux_cli_mcp/README.md` and main `README.md`.
+  - [ ] (Manual User Task) Place SSH private key in `./secrets/aicrusher_jeriko_id_rsa` and ensure public key is on `aicrusher`.
+  - [ ] Test `linux.sshExecuteCommand` tool to connect to `aicrusher` and list `/home/jeriko/freqtrade_ai/`.
 
 ### Day 4-5: Security Framework
 1. Implement `SecurityManager` class
@@ -182,42 +178,52 @@ Further review of the guide will inform ongoing and future development tasks to 
 
 ## Phase 3: Specialized MCPs & Advanced Features (Week 6-8)
 
-### Freqtrade MCP with Hyperopt and FreqAI (New Service - Priority 4 / Parallel)
-- **Goal:** Create an MCP service to interact with and manage Freqtrade bots, including Hyperopt and FreqAI capabilities.
+### Freqtrade MCP - Refactored as Knowledge Hub (Priority 4 / Parallel)
+- **Goal:** Provide an MCP service for Freqtrade knowledge, documentation, and source code exploration.
+- **Status:** Refactoring complete. TA-Lib installation in Dockerfile still needs to be confirmed working during build.
+- **Details:**
+  - [x] Updated `15_freqtrade_mcp/Dockerfile`:
+    - [x] Added `git clone` of Freqtrade repository to `/opt/freqtrade_src`.
+    - [x] Kept Freqtrade and TA-Lib installation steps.
+  - [x] Refactored `15_freqtrade_mcp/mcp_server.py`:
+    - [x] Removed tools for live bot API interaction.
+    - [x] Kept knowledge base tools (`hyperoptBestPractices`, `freqAiOverview`).
+    - [x] Added `freqtrade.source.getFileContent` and `freqtrade.source.listDirectory` tools.
+    - [x] Added `freqtrade.cli.runInfoCommand` for informational CLI subcommands (uses `/opt/freqtrade_src`).
+    - [x] Updated health check to verify access to the cloned repository.
+  - [x] Updated `docker-compose.yml` for `15_freqtrade_mcp` service:
+    - [x] Removed Freqtrade API environment variables, secrets, and direct volume mounts for `user_data` & `config_bot.json`.
+    - [x] Removed `depends_on: [freqtrade_bot_15]`.
+  - [x] Updated `00_master_mcp/mcp_host.py`: Changed proxied namespace to `trading.freqtrade.knowledge`.
+  - [x] Updated `ports.md` and main `README.md` to reflect the new role.
+- **Next Steps:**
+  - [ ] Verify successful build of `15_freqtrade_mcp` including TA-Lib compilation.
+  - [ ] Thoroughly test all implemented knowledge and source exploration tools.
+  - [ ] Update/Add tests in `tests/15_freqtrade_mcp/test_freqtrade_mcp.py` for the new tools.
+
+### AI Models MCP (New Service - `16_ai_models_mcp`)
+- **Goal:** Create an MCP service to interact with LLMs like Google Gemini and Anthropic Claude.
 - **Status:** Initial implementation complete.
 - **Details:**
-  - [x] Created `15_freqtrade_mcp/` directory with `Dockerfile`, `requirements.txt`, and `mcp_server.py`.
-  - [x] Implemented core MCP server structure in `15_freqtrade_mcp/mcp_server.py`:
-    - [x] Standard FastMCP setup with Uvicorn and JSON logging.
-    - [x] `call_freqtrade_api` helper for Freqtrade REST API interaction.
-    - [x] `/health` endpoint.
-  - [x] Populated knowledge base tools:
-    - [x] `freqtrade.knowledge.hyperoptBestPractices`
-    - [xx] `freqtrade.knowledge.freqAiOverview` (marked as double-x to indicate it's done, but typo in original, fixing)
-  - [x] Implemented API-based tools for Freqtrade interaction:
-    - [x] Bot status & control (getStatus, startBot, stopBot, pauseBot, stopBuy, reloadConfig, getBotHealth, getVersion, showConfig).
-    - [x] Financials (getBalance, getProfitSummary, getDailyStats, getPerformance, getTradesHistory, getTrade).
-    - [x] Pair & List Management (getWhitelist, getBlacklist, addToBlacklist, deleteFromBlacklist, getLocks, addLock, deleteLock).
-    - [x] Forcing Actions (forceEnter, forceExit).
-  - [x] Implemented placeholder CLI-based tools:
-    - [x] `freqtrade.cli.runHyperopt` (with common parameters).
-    - [x] `freqtrade.cli.freqaiTrain` (placeholder, needs CLI verification).
-  - [x] Updated `15_freqtrade_mcp/requirements.txt` with `httpx` and pinned versions.
-  - [x] Refined `15_freqtrade_mcp/Dockerfile` (non-root user, CMD, dependencies).
-  - [x] Created `15_freqtrade_mcp/user_data/` directory (with `.gitkeep`).
-  - [x] Created `15_freqtrade_mcp/config_bot.json` (basic Freqtrade bot config with API enabled).
+  - [x] Created `16_ai_models_mcp/` directory.
+  - [x] Created `16_ai_models_mcp/requirements.txt` (fastmcp, google-generativeai, anthropic).
+  - [x] Created `16_ai_models_mcp/Dockerfile`.
+  - [x] Implemented `16_ai_models_mcp/mcp_server.py`:
+    - [x] Standard FastMCP setup, JSON logging.
+    - [x] Configuration for Gemini & Anthropic API keys from Docker secrets.
+    - [x] Added `ai.models.gemini.generateContent` tool.
+    - [x] Added `ai.models.anthropic.createMessage` tool.
+    - [x] Added `/health` check for API key presence.
   - [x] Updated `docker-compose.yml`:
-    - [x] Added `freqtrade_bot_15` service (for the actual Freqtrade bot).
-    - [x] Added `15_freqtrade_mcp` service (for the MCP server).
-    - [x] Configured ports, volumes, environment variables (including `FREQTRADE_API_URL`), secrets (`freqtrade_api_password`), and dependencies.
-  - [x] Updated `00_master_mcp/mcp_host.py` to proxy `15_freqtrade_mcp` (added `trading.freqtrade` to `FOCUSED_DEFAULT_SERVERS` and corresponding env var to `docker-compose.yml` for master).
-  - [x] Created `tests/15_freqtrade_mcp/test_freqtrade_mcp.py` with a basic health check test.
+    - [x] Added `16_ai_models_mcp` service on port `8016`.
+    - [x] Configured environment variables for API key secret paths.
+    - [x] Defined `gemini_api_key` and `anthropic_api_key` Docker secrets.
+  - [x] Updated `00_master_mcp/mcp_host.py`: Added `16_ai_models_mcp` to `FOCUSED_DEFAULT_SERVERS` under `ai.models` namespace and to `depends_on` for `00_master_mcp`.
+  - [x] Updated `ports.md` and main `README.md`.
 - **Next Steps:**
-  - [ ] Add `httpx` to `00_master_mcp/requirements.txt` (if not already there, due to `MCPServiceClient`). (Actually, this was for `00_master_mcp` for its own client, `15_freqtrade_mcp` already has it).
-  - [ ] Create `secrets/freqtrade_api_password.txt` with a strong password.
-  - [ ] Thoroughly test all implemented tools against a running `freqtrade_bot_15` instance.
-  - [ ] Refine `freqtrade.cli.freqaiTrain` tool based on Freqtrade CLI specifics for triggering training.
-  - [ ] Develop more comprehensive tests in `tests/15_freqtrade_mcp/test_freqtrade_mcp.py`.
+  - [ ] (Manual User Task) Create `secrets/gemini_api_key.txt` and `secrets/anthropic_api_key.txt` with valid API keys.
+  - [ ] Test connectivity and basic functionality of both Gemini and Anthropic tools.
+  - [ ] Create `tests/16_ai_models_mcp/test_ai_models_mcp.py` with tests for the new tools.
 
 ### Workflow Templates
 ```python

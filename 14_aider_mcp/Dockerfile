@@ -18,4 +18,4 @@ ENV MCP_PORT=8014
 # Command to run the Aider MCP server
 # It will listen on 0.0.0.0 inside the container on MCP_PORT
 # The --repo-path will use the REPO_PATH environment variable
-CMD ["aider-mcp", "--repo-path", "$REPO_PATH"] 
+CMD ["aider-mcp-server", "--repo-path", "$REPO_PATH"] 

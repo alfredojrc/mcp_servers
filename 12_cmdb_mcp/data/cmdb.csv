@@ -1,2 +1,93 @@
 hostname,ip_address,os_type,os_version,services,path,user,ssh_access_notes
-aicrusher,192.168.68.100/22,Ubuntu,24.04 LTS,"Docker, Freqtrade",/home/jeriko/freqtrade_ai/,jeriko,"SSH access via alf@macbook key" 
+aicrusher,192.168.68.100/22,Ubuntu,24.04 LTS,"Docker, Freqtrade",/home/jeriko/freqtrade_ai/,jeriko,SSH access via alf@macbook key 
+00_master_mcp,localhost:8000,Docker,Container,"mcp,8000",/container/00_master_mcp,docker,Port mapping: 8000->8000
+01_linux_cli_mcp,localhost:8001,Docker,Container,"mcp,8001",/container/01_linux_cli_mcp,docker,Port mapping: 8001->8001
+02_windows_mcp,localhost:8002,Docker,Container,"mcp,8002",/container/02_windows_mcp,docker,Port mapping: 8002->8002
+03_azure_mcp,localhost:8003,Docker,Container,"mcp,8003",/container/03_azure_mcp,docker,Port mapping: 8003->8003
+04_google_cloud_mcp,localhost:8004,Docker,Container,"mcp,8004",/container/04_google_cloud_mcp,docker,Port mapping: 8004->8004
+05_vmware_mcp,localhost:8005,Docker,Container,"mcp,8005",/container/05_vmware_mcp,docker,Port mapping: 8005->8005
+06_web_search_mcp,localhost:8006,Docker,Container,"mcp,8006",/container/06_web_search_mcp,docker,Port mapping: 8006->8006
+07_web_browsing_mcp,localhost:8007,Docker,Container,"mcp,8007",/container/07_web_browsing_mcp,docker,Port mapping: 8007->8007
+08_k8s_mcp,localhost:8008,Docker,Container,"mcp,8008",/container/08_k8s_mcp,docker,Port mapping: 8008->8008
+09_n8n_mcp,localhost:8009,Docker,Container,"mcp,8009",/container/09_n8n_mcp,docker,Port mapping: 8009->8009
+10_macos_mcp,localhost:8010,Docker,Container,"mcp,8010",/container/10_macos_mcp,docker,Port mapping: 8010->8010
+12_cmdb_mcp,localhost:8012,Docker,Container,"mcp,8012",/container/12_cmdb_mcp,docker,Port mapping: 8012->8012
+13_secrets_mcp,localhost:8013,Docker,Container,"mcp,8013",/container/13_secrets_mcp,docker,Port mapping: 8013->8013
+14_aider_mcp,localhost:8014,Docker,Container,"mcp,8014",/container/14_aider_mcp,docker,Port mapping: 8014->8014
+15_freqtrade_mcp,localhost:8015,Docker,Container,"mcp,8015",/container/15_freqtrade_mcp,docker,Port mapping: 8015->8015
+16_ai_models_mcp,localhost:8016,Docker,Container,"mcp,8016",/container/16_ai_models_mcp,docker,Port mapping: 8016->8016
+prometheus,localhost:9090,Docker,Container,"monitoring,Metrics collection",/container/prometheus,docker,Port mapping: 9090->9090
+grafana,localhost:3000,Docker,Container,"monitoring,Metrics & logs visualization",/container/grafana,docker,Port mapping: 3000->3000
+loki,localhost:3100,Docker,Container,"monitoring,Log aggregation",/container/loki,docker,Port mapping: 3100->3100
+n8n-n8n-1,localhost:5678,Docker,Container,"n8n,Main n8n instance",/container/n8n-n8n-1,docker,Port mapping: 5678->5678
+n8n-n8n-selenium-1,localhost:4444,Docker,Container,"n8n,Selenium for browser automation",/container/n8n-n8n-selenium-1,docker,Port mapping: 4444->4444
+freqtrade_bot_15,localhost:18080,Docker,Container,"freqtrade,Actual Freqtrade trading bot instance",/container/freqtrade_bot_15,docker,Port mapping: 18080->8080
+postgresql,localhost:9432,Docker,Container,"freqtrade,(Host IP 192.168.77.95) DB for freqtrade_ai",/container/postgresql,docker,Port mapping: 9432->5432
+bmaster,localhost:9080,Docker,Container,"freqtrade,(Host IP 192.168.77.95) Main Freqtrade UI / Brain",/container/bmaster,docker,Port mapping: 9080->8080
+bflask,localhost:9050,Docker,Container,"freqtrade,Custom Flask App (if used)",/container/bflask,docker,Port mapping: 9050->5000
+bdash_freqUI,localhost:9082,Docker,Container,"freqtrade,Dedicated FreqUI Instance",/container/bdash_freqUI,docker,Port mapping: 9082->8080
+b00000,localhost:9081,Docker,Container,"freqtrade,(Host IP 192.168.77.95) Test Bot UI",/container/b00000,docker,Port mapping: 9081->8080
+portainer,localhost:9443,Docker,Container,"freqtrade,(Host IP 192.168.77.95) Docker Mgmt UI",/container/portainer,docker,Port mapping: 9443->9000
+hawkeye_postgres,localhost:10432,Docker,Container,"hawkeye,PostgreSQL 17 for trading data and analysis",/container/hawkeye_postgres,docker,Port mapping: 10432->5432
+hawkeye_redis,localhost:10379,Docker,Container,"hawkeye,Redis for caching and real-time data",/container/hawkeye_redis,docker,Port mapping: 10379->6379
+hawkeye_freqtrade_v1,localhost:10080,Docker,Container,"hawkeye,Freqtrade API/UI for Hawkeye V1 strategy",/container/hawkeye_freqtrade_v1,docker,Port mapping: 10080->8080
+hawkeye_freqtrade_v2,localhost:10081,Docker,Container,"hawkeye,Freqtrade API/UI for Hawkeye V2 strategy",/container/hawkeye_freqtrade_v2,docker,Port mapping: 10081->8080
+hawkeye_freqtrade_v3,localhost:10082,Docker,Container,"hawkeye,Freqtrade API/UI for Hawkeye V3 strategy",/container/hawkeye_freqtrade_v3,docker,Port mapping: 10082->8080
+hawkeye_bot_01,localhost:10101,Docker,Container,"hawkeye,Trading Bot Instance 01 (BTC focused)",/container/hawkeye_bot_01,docker,Port mapping: 10101->8080
+hawkeye_bot_02,localhost:10102,Docker,Container,"hawkeye,Trading Bot Instance 02 (ETH focused)",/container/hawkeye_bot_02,docker,Port mapping: 10102->8080
+hawkeye_bot_03,localhost:10103,Docker,Container,"hawkeye,Trading Bot Instance 03 (ALT focused)",/container/hawkeye_bot_03,docker,Port mapping: 10103->8080
+hawkeye_bot_04,localhost:10104,Docker,Container,"hawkeye,Trading Bot Instance 04 (Scalping)",/container/hawkeye_bot_04,docker,Port mapping: 10104->8080
+hawkeye_bot_05,localhost:10105,Docker,Container,"hawkeye,Trading Bot Instance 05 (Swing)",/container/hawkeye_bot_05,docker,Port mapping: 10105->8080
+hawkeye_jupyter,localhost:10888,Docker,Container,"hawkeye,Jupyter Lab for development and analysis",/container/hawkeye_jupyter,docker,Port mapping: 10888->8888
+hawkeye_grafana,localhost:10300,Docker,Container,"hawkeye,Grafana monitoring dashboard",/container/hawkeye_grafana,docker,Port mapping: 10300->3000
+hawkeye_nginx,localhost:10443,Docker,Container,"hawkeye,HTTPS/HTTP reverse proxy",/container/hawkeye_nginx,docker,Port mapping: 10443->443
+hawkeye_ws_debug,localhost:10999,Docker,Container,"hawkeye,WebSocket debugger (development only)",/container/hawkeye_ws_debug,docker,Port mapping: 10999->9999
+hawkeye_monitor,localhost:10661,Docker,Container,"hawkeye,Glances system monitor web UI",/container/hawkeye_monitor,docker,Port mapping: 10661->61208
+hawkeye_monitor_dashboard,localhost:10500,Docker,Container,"hawkeye,Hawkeye monitoring dashboards & API proxy",/container/hawkeye_monitor_dashboard,docker,Port mapping: 10500->10500
+geminifreq_postgres,localhost:11432,Docker,Container,"geminifreq,TimescaleDB for time-series market data",/container/geminifreq_postgres,docker,Port mapping: 11432->5432
+geminifreq_redis,localhost:11379,Docker,Container,"geminifreq,Redis for caching and pub/sub",/container/geminifreq_redis,docker,Port mapping: 11379->6379
+geminifreq_kafka,localhost:11092,Docker,Container,"geminifreq,Kafka message broker",/container/geminifreq_kafka,docker,Port mapping: 11092->9092
+geminifreq_zookeeper,localhost:11081,Docker,Container,"geminifreq,Zookeeper for Kafka",/container/geminifreq_zookeeper,docker,Port mapping: 11081->2181
+geminifreq_rabbitmq,localhost:11672,Docker,Container,"geminifreq,RabbitMQ management UI & AMQP port",/container/geminifreq_rabbitmq,docker,Port mapping: 11672->15672
+geminifreq_data_feed,localhost:11000,Docker,Container,"geminifreq,WebSocket data ingestion service",/container/geminifreq_data_feed,docker,Port mapping: 11000->8000
+geminifreq_feature_eng,localhost:11001,Docker,Container,"geminifreq,Feature engineering service",/container/geminifreq_feature_eng,docker,Port mapping: 11001->8001
+geminifreq_model_train,localhost:11002,Docker,Container,"geminifreq,FreqAI model training service",/container/geminifreq_model_train,docker,Port mapping: 11002->8002
+geminifreq_risk_manager,localhost:11003,Docker,Container,"geminifreq,Risk management service",/container/geminifreq_risk_manager,docker,Port mapping: 11003->8003
+geminifreq_order_manager,localhost:11004,Docker,Container,"geminifreq,Order execution service",/container/geminifreq_order_manager,docker,Port mapping: 11004->8004
+geminifreq_portfolio,localhost:11005,Docker,Container,"geminifreq,Portfolio tracking service",/container/geminifreq_portfolio,docker,Port mapping: 11005->8005
+geminifreq_model_server,localhost:11006,Docker,Container,"geminifreq,Model serving API",/container/geminifreq_model_server,docker,Port mapping: 11006->8006
+geminifreq_api_gateway,localhost:11007,Docker,Container,"geminifreq,API gateway",/container/geminifreq_api_gateway,docker,Port mapping: 11007->8007
+geminifreq_backtest,localhost:11301,Docker,Container,"geminifreq,Dedicated backtesting instance",/container/geminifreq_backtest,docker,Port mapping: 11301->8080
+geminifreq_hyperopt,localhost:11401,Docker,Container,"geminifreq,Hyperparameter optimization instance",/container/geminifreq_hyperopt,docker,Port mapping: 11401->8080
+geminifreq_jupyter,localhost:11888,Docker,Container,"geminifreq,Jupyter Lab with ML libraries",/container/geminifreq_jupyter,docker,Port mapping: 11888->8888
+geminifreq_grafana,localhost:11300,Docker,Container,"geminifreq,Grafana monitoring dashboard",/container/geminifreq_grafana,docker,Port mapping: 11300->3000
+geminifreq_prometheus,localhost:11090,Docker,Container,"geminifreq,Prometheus metrics collector",/container/geminifreq_prometheus,docker,Port mapping: 11090->9090
+geminifreq_alertmanager,localhost:11093,Docker,Container,"geminifreq,Alert manager",/container/geminifreq_alertmanager,docker,Port mapping: 11093->9093
+geminifreq_nginx,localhost:11443,Docker,Container,"geminifreq,HTTPS/HTTP reverse proxy",/container/geminifreq_nginx,docker,Port mapping: 11443->443
+geminifreq_dashboard,localhost:11500,Docker,Container,"geminifreq,Custom trading dashboard",/container/geminifreq_dashboard,docker,Port mapping: 11500->3000
+geminifreq_wiki,localhost:11501,Docker,Container,"geminifreq,Documentation wiki",/container/geminifreq_wiki,docker,Port mapping: 11501->3000
+geminifreq_elasticsearch,localhost:11200,Docker,Container,"geminifreq,Elasticsearch for logs",/container/geminifreq_elasticsearch,docker,Port mapping: 11200->9200
+geminifreq_kibana,localhost:11601,Docker,Container,"geminifreq,Kibana for log visualization",/container/geminifreq_kibana,docker,Port mapping: 11601->5601
+geminifreq_pgadmin,localhost:11580,Docker,Container,"geminifreq,PostgreSQL administration UI",/container/geminifreq_pgadmin,docker,Port mapping: 11580->80
+claudefreq_timescaledb,localhost:12432,Docker,Container,"claudefreq,TimescaleDB for time-series market data",/container/claudefreq_timescaledb,docker,Port mapping: 12432->5432
+claudefreq_redis,localhost:12379,Docker,Container,"claudefreq,Redis for caching and real-time data distribution",/container/claudefreq_redis,docker,Port mapping: 12379->6379
+claudefreq_websocket,localhost:12080,Docker,Container,"claudefreq,WebSocket data feed service health endpoint",/container/claudefreq_websocket,docker,Port mapping: 12080->8080
+claudefreq_prometheus,localhost:12090,Docker,Container,"claudefreq,Prometheus metrics collector",/container/claudefreq_prometheus,docker,Port mapping: 12090->9090
+claudefreq_grafana,localhost:12300,Docker,Container,"claudefreq,Grafana monitoring dashboard",/container/claudefreq_grafana,docker,Port mapping: 12300->3000
+claudefreq_api,localhost:12000,Docker,Container,"claudefreq,Management REST API",/container/claudefreq_api,docker,Port mapping: 12000->8000
+claudefreq_node_exporter,localhost:12100,Docker,Container,"claudefreq,System metrics exporter",/container/claudefreq_node_exporter,docker,Port mapping: 12100->9100
+claudefreq_alertmanager,localhost:12093,Docker,Container,"claudefreq,Alert manager (reserved)",/container/claudefreq_alertmanager,docker,Port mapping: 12093->9093
+claudefreq_strategy_v001,localhost:12101,Docker,Container,"claudefreq,Strategy v001 - Baseline",/container/claudefreq_strategy_v001,docker,Port mapping: 12101->8080
+claudefreq_strategy_v002,localhost:12102,Docker,Container,"claudefreq,Strategy v002 - Funding Arbitrage",/container/claudefreq_strategy_v002,docker,Port mapping: 12102->8080
+claudefreq_strategy_v003,localhost:12103,Docker,Container,"claudefreq,Strategy v003 - Grid Trading",/container/claudefreq_strategy_v003,docker,Port mapping: 12103->8080
+claudefreq_strategy_v004,localhost:12104,Docker,Container,"claudefreq,Strategy v004 - ML Ensemble",/container/claudefreq_strategy_v004,docker,Port mapping: 12104->8080
+claudefreq_orchestrator,localhost:12501,Docker,Container,"claudefreq,AI Agent Orchestrator",/container/claudefreq_orchestrator,docker,Port mapping: 12501->8080
+claudefreq_market_analyst,localhost:12502,Docker,Container,"claudefreq,Market Analysis Agent",/container/claudefreq_market_analyst,docker,Port mapping: 12502->8080
+claudefreq_code_optimizer,localhost:12503,Docker,Container,"claudefreq,Code Optimization Agent",/container/claudefreq_code_optimizer,docker,Port mapping: 12503->8080
+claudefreq_risk_auditor,localhost:12504,Docker,Container,"claudefreq,Risk Auditor Agent",/container/claudefreq_risk_auditor,docker,Port mapping: 12504->8080
+claudefreq_documentor,localhost:12505,Docker,Container,"claudefreq,Documentation Agent",/container/claudefreq_documentor,docker,Port mapping: 12505->8080
+claudefreq_jupyter,localhost:12888,Docker,Container,"claudefreq,Jupyter Lab for development",/container/claudefreq_jupyter,docker,Port mapping: 12888->8888
+claudefreq_wiki,localhost:12600,Docker,Container,"claudefreq,Documentation wiki",/container/claudefreq_wiki,docker,Port mapping: 12600->3000
+claudefreq_pgadmin,localhost:12580,Docker,Container,"claudefreq,PostgreSQL administration UI",/container/claudefreq_pgadmin,docker,Port mapping: 12580->80
+claudefreq_redis_commander,localhost:12581,Docker,Container,"claudefreq,Redis administration UI",/container/claudefreq_redis_commander,docker,Port mapping: 12581->8081
+claudefreq_nginx,localhost:12443,Docker,Container,"claudefreq,HTTPS/HTTP reverse proxy",/container/claudefreq_nginx,docker,Port mapping: 12443->443

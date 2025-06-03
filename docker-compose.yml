@@ -241,6 +241,35 @@ services:
       - mcp-network
     restart: unless-stopped
 
+  17_crypto_trader_mcp:
+    build:
+      context: ./17_crypto_trader_mcp
+      dockerfile: Dockerfile
+    ports:
+      - "${MCP_PORT_17:-8017}:8017"
+    environment:
+      - MCP_PORT=8017
+      - DEFAULT_EXCHANGE=binance
+      - ENABLE_PAPER_TRADING=true
+      - REQUIRE_TRADE_APPROVAL=true
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+      # Optional API keys for authenticated endpoints
+      - BINANCE_API_KEY=${BINANCE_API_KEY:-}
+      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-}
+    volumes:
+      - ./17_crypto_trader_mcp/data:/workspace/data
+      - ./secrets:/secrets:ro
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8017/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   # --- Monitoring Stack ---
   prometheus:
     image: prom/prometheus:v2.53.0 # Use a specific stable version

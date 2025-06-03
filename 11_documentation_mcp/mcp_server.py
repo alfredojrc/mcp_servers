@@ -581,4 +581,32 @@ except Exception as e:
 if __name__ == "__main__":
     # Run the FastMCP server
     import uvicorn
-    uvicorn.run(mcp, host="0.0.0.0", port=MCP_PORT, log_level="info")
+    from starlette.applications import Starlette
+    from starlette.routing import Mount
+    from starlette.staticfiles import StaticFiles
+    from starlette.responses import FileResponse
+    from starlette.exceptions import HTTPException
+    
+    # Get the MCP SSE app
+    mcp_app = mcp.sse_app()
+    
+    # Create a new Starlette app that combines MCP and static files
+    app = Starlette()
+    
+    # Serve static files
+    static_path = Path(__file__).parent / "static"
+    if static_path.exists():
+        app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+    
+    # Serve index.html at root
+    @app.route("/")
+    async def homepage(request):
+        index_file = static_path / "index.html"
+        if index_file.exists():
+            return FileResponse(str(index_file))
+        return {"message": "Documentation MCP Service", "port": MCP_PORT}
+    
+    # Mount the MCP app for all other routes
+    app.mount("/", mcp_app)
+    
+    uvicorn.run(app, host="0.0.0.0", port=MCP_PORT, log_level="info")

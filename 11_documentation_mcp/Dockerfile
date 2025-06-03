@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY mcp_server.py .
 COPY entrypoint.sh .
 
+# Copy static files if they exist
+COPY static/ ./static/ 
+
 # Make entrypoint executable
 RUN chmod +x entrypoint.sh
 

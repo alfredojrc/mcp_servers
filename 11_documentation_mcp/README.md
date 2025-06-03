@@ -87,3 +87,36 @@ Tools are organized under the `docs.*` namespace.
 - **Logging**: JSON structured logs with correlation IDs
 - **Metrics**: Search queries, document access patterns, popular docs
 - **Health Check**: Verifies document index is accessible
+
+## Claude Code Integration
+
+This service is designed to work seamlessly with Claude Code (claude.ai/code).
+
+### Quick Setup
+1. Ensure service is running on `http://192.168.68.100:8011`
+2. Add `.mcp.json` to your project:
+```json
+{
+  "mcpServers": {
+    "documentation": {
+      "url": "http://192.168.68.100:8011/sse",
+      "transport": "sse"
+    }
+  }
+}
+```
+3. Restart Claude Code to load the configuration
+
+### Available Commands
+- "Search documentation for [topic]"
+- "Show me documentation about [feature]"
+- "Create documentation for [component]"
+- "Update the [document] with [changes]"
+
+### Integration Testing
+Run the validation script:
+```bash
+python test_claude_integration.py
+```
+
+For detailed integration guide, see `CLAUDE_CODE_INTEGRATION.md`

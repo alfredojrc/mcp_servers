@@ -257,3 +257,20 @@ async def test_service_failure_recovery():
 - Missing environment validation in several services
 - Secrets management needs standardization across services
 - Docker health checks not implemented for all services
+
+## Documentation Service Improvements
+
+The Documentation MCP Service (11_documentation_mcp) has a comprehensive improvement roadmap planned:
+
+### Key Documents
+- **IMPROVEMENT_ROADMAP.md**: Full feature roadmap with 5 implementation phases
+- **IMPLEMENTATION_PLAN.md**: Practical action plan with quick wins and milestones
+
+### Planned Improvements
+1. **AI-Enhanced Search**: Semantic search with local embeddings
+2. **Knowledge Graph**: Auto-generated relationships between documents
+3. **Claude Integration**: Optimized responses and conversation context
+4. **Real-time Collaboration**: Live editing and presence indicators
+5. **Workflow Automation**: CI/CD integration and scheduled updates
+
+See `/data/mcp_servers/11_documentation_mcp/IMPROVEMENT_ROADMAP.md` for full details.

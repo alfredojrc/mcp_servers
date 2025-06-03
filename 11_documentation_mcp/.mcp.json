@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "documentation": {
+      "url": "http://192.168.68.100:8011/sse",
+      "transport": "sse",
+      "description": "Documentation MCP Service",
+      "autoApprove": [
+        "docs.search",
+        "docs.get",
+        "docs.list",
+        "docs.categories.list",
+        "docs.tags.list",
+        "docs.getMetrics"
+      ]
+    }
+  }
+}

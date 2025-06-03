@@ -59,7 +59,9 @@ FOCUSED_DEFAULT_SERVERS = {
     "cmdb":           f"http://12_cmdb_mcp:{os.getenv('MCP_PORT_12', '8012')}",
     "secrets":        f"http://13_secrets_mcp:{os.getenv('MCP_PORT_13', '8013')}",
     "trading.freqtrade.knowledge": f"http://15_freqtrade_mcp:{os.getenv('MCP_PORT_15', '8015')}",
-    "ai.models":      f"http://16_ai_models_mcp:{os.getenv('MCP_PORT_16', '8016')}"
+    "ai.models":      f"http://16_ai_models_mcp:{os.getenv('MCP_PORT_16', '8016')}",
+    "crypto":         f"http://17_crypto_trader_mcp:{os.getenv('MCP_PORT_17', '8017')}",
+    "vector":         f"http://18_vector_db_mcp:{os.getenv('MCP_PORT_18', '8018')}"
 }
 
 mcp_server_config_payload = {"mcpServers": {}}
@@ -106,8 +108,9 @@ def get_master_server_info():
         "proxied_namespaces": list(FOCUSED_DEFAULT_SERVERS.keys())
     }
 
-fastmcp_protocol_app = mcp.http_app()
-logger.info(f"FastMCP ASGI app (fastmcp_protocol_app) created. Will be mounted at /mcp.")
+# For SSE transport with proper mounting, use http_app with transport parameter
+fastmcp_protocol_app = mcp.http_app(transport="sse")
+logger.info(f"FastMCP SSE ASGI app (fastmcp_protocol_app) created. Will be mounted at /mcp.")
 
 async def root_health_endpoint(request):
     logger.debug("Accessed root /health endpoint")
@@ -123,6 +126,7 @@ async def root_metrics_endpoint(request):
 async def homepage(request):
     return HTMLResponse("<h1>Master MCP Orchestrator</h1><p>MCP endpoint at /mcp. Health at /health. Metrics at /metrics.</p>")
 
+# Pass the lifespan from FastMCP app to the main Starlette app
 main_app = Starlette(
     debug=True,
     routes=[
@@ -131,6 +135,7 @@ main_app = Starlette(
         Route("/metrics", endpoint=root_metrics_endpoint, methods=["GET"]),
         Mount("/mcp", app=fastmcp_protocol_app, name="fastmcp_core")
     ],
+    lifespan=fastmcp_protocol_app.lifespan,  # Pass lifespan for proper SSE initialization
     on_startup=[lambda: logger.info(f"Main Starlette app (main_app) started. FastMCP app mounted at '/mcp'.")],
     on_shutdown=[lambda: logger.info("Main Starlette app (main_app) shutting down.")]
 )
@@ -232,4 +237,5 @@ async def run_main_app_directly():
     await server.serve()
 
 if __name__ == "__main__":
-    asyncio.run(run_main_app_directly()) 
+    # Run the proxy directly with SSE transport
+    mcp.run(transport="sse", host="0.0.0.0", port=MCP_PORT) 

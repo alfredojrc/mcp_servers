@@ -4,7 +4,7 @@ services:
       context: ./00_master_mcp
       dockerfile: Dockerfile
     ports:
-      - "${MCP_PORT_00:-8080}:8000"
+      - "${MCP_PORT_00:-8000}:8000"
     environment:
       - MCP_PORT=8000
       # Environment variables for proxied service URLs
@@ -15,6 +15,8 @@ services:
       - MCP_PORT_13=${MCP_PORT_13:-8013}       # For 13_secrets_mcp
       - MCP_PORT_15=${MCP_PORT_15:-8015}       # For 15_freqtrade_mcp
       - MCP_PORT_16=${MCP_PORT_16:-8016}       # Added AI Models MCP
+      - MCP_PORT_17=${MCP_PORT_17:-8017}       # For 17_crypto_trader_mcp
+      - MCP_PORT_18=${MCP_PORT_18:-8018}       # For 18_vector_db_mcp
     volumes:
       - ./secrets:/secrets:ro
     networks:
@@ -28,6 +30,8 @@ services:
       - 13_secrets_mcp
       - 15_freqtrade_mcp
       - 16_ai_models_mcp
+      - 17_crypto_trader_mcp
+      - 18_vector_db_mcp
 
   08_k8s_mcp:
     build:
@@ -270,6 +274,32 @@ services:
       retries: 3
       start_period: 40s
 
+  18_vector_db_mcp:
+    build:
+      context: ./18_vector_db_mcp
+      dockerfile: Dockerfile
+    ports:
+      - "${MCP_PORT_18:-8018}:8018"
+    environment:
+      - MCP_PORT=8018
+      - CHROMA_PERSIST_DIR=/app/data/chroma
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - DEFAULT_COLLECTION=mcp_knowledge
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./18_vector_db_mcp/data:/app/data
+      - ./secrets:/secrets:ro
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8018/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   # --- Monitoring Stack ---
   prometheus:
     image: prom/prometheus:v2.53.0 # Use a specific stable version
@@ -403,4 +433,5 @@ volumes:
   prometheus_data:
   grafana_data:
   loki_data:
-  promtail_data: 
+  promtail_data:
+  vector_db_data: 

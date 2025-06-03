@@ -25,6 +25,8 @@ These are the core Model Context Protocol services that form the foundation of t
 | `14_aider_mcp`                 | mcp_servers-14_aider_mcp             | `8014->8014`     | 8014                  | AI coding assistant (Aider)                 |
 | `15_freqtrade_mcp`             | mcp_servers-15_freqtrade_mcp         | `8015->8015`     | 8015                  | Freqtrade Knowledge Hub & Source Explorer   |
 | `16_ai_models_mcp`             | mcp_servers-16_ai_models_mcp         | `8016->8016`     | 8016                  | AI Models (Gemini, Anthropic) Gateway       |
+| `17_crypto_trader_mcp`         | mcp_servers-17_crypto_trader_mcp     | `8017->8017`     | 8017                  | Cryptocurrency Trading & Market Analysis    |
+| `18_vector_db_mcp`             | mcp_servers-18_vector_db_mcp         | `8018->8018`     | 8018                  | Vector Database for Semantic Search & RAG   |
 
 **Note:** The `Port Mappings` column shows `HOST_PORT->CONTAINER_PORT`. Environment variables in `docker-compose.yml` (e.g., `${MCP_PORT_01:-8001}`) define the host port, falling back to the default if the variable is not set.
 
@@ -205,7 +207,7 @@ These are the core Model Context Protocol services that form the foundation of t
 
 ## Port Range Summary
 
-- **8000-8016**: MCP Services (Model Context Protocol) - Note: 8006-8007 removed (redundant with Claude Code web capabilities)
+- **8000-8018**: MCP Services (Model Context Protocol) - Note: 8006-8007 removed (redundant with Claude Code web capabilities)
 - **3000-3100**: Monitoring Services (Grafana, Loki)
 - **4444-7900**: Browser Automation (Selenium)
 - **5678**: n8n Workflow Automation

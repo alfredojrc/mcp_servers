@@ -18,5 +18,5 @@ echo "LOG_LEVEL: ${LOG_LEVEL_CONFIG}"
 echo "Executing Uvicorn: uvicorn mcp_host:${APP_VARIABLE_NAME} --host 0.0.0.0 --port ${SERVICE_PORT} --log-level ${LOG_LEVEL_CONFIG}"
 echo "------------------------------------"
 
-# Execute Uvicorn with the corrected app variable
-exec uvicorn mcp_host:${APP_VARIABLE_NAME} --host 0.0.0.0 --port "${SERVICE_PORT}" --log-level "${LOG_LEVEL_CONFIG}" 
+# Execute the Python script directly to run FastMCP with SSE
+exec python mcp_host.py 

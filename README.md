@@ -45,9 +45,14 @@ mcp_servers/
 ├── 08_k8s_mcp/               # MCP Server for Kubernetes cluster interactions
 ├── 09_n8n_mcp/               # MCP Server for n8n workflow automation
 ├── 10_macos_mcp/             # MCP Server for macOS operations
-├── 11_freqtrade_mcp/         # MCP Server for Freqtrade trading bot
+├── 11_documentation_mcp/     # MCP Server for Documentation Management
 ├── 12_cmdb_mcp/              # MCP Server for Configuration Management Database
 ├── 13_secrets_mcp/           # MCP Server for secrets management
+├── 14_aider_mcp/             # MCP Server for AI coding assistant (Aider)
+├── 15_freqtrade_mcp/         # MCP Server for Freqtrade knowledge & source exploration
+├── 16_ai_models_mcp/         # MCP Server for AI Models (Gemini, Anthropic)
+├── 17_crypto_trader_mcp/     # MCP Server for Cryptocurrency Trading & Analysis
+├── 18_vector_db_mcp/         # MCP Server for Vector Database & Semantic Search
 ├── monitoring/               # Configuration for Prometheus, Grafana, Loki
 │   ├── grafana/
 │   ├── loki/
@@ -116,11 +121,14 @@ Each service implements an MCP server with official SDKs (Python, TypeScript, Go
 | `08_k8s_mcp`            | Interact with Kubernetes clusters           | `infra.k8s.pods.list`, `infra.k8s.helm.install` |
 | `09_n8n_mcp`            | Orchestrate n8n workflows                   | `workflows.n8n.trigger`                     |
 | `10_macos_mcp`          | Manage macOS tasks                          | `os.macos.apps.list`, `os.macos.script.control` |
+| `11_documentation_mcp`  | Manage project documentation                | `docs.search`, `docs.create`, `docs.update`, `docs.version` |
 | `12_cmdb_mcp`           | Interact with Configuration Management Database | `cmdb.queryAssets`, `cmdb.servicenow.getIncident` |
 | `13_secrets_mcp`        | Manage secrets securely                     | `secrets.get`, `secrets.keepass.getPassword`    |
 | `14_aider_mcp`          | AI coding assistant tasks                   | `aider.editFile`, `aider.runTests`                |
 | `15_freqtrade_mcp`      | Freqtrade knowledge, source code exploration | `trading.freqtrade.knowledge.hyperoptBestPractices`, `trading.freqtrade.source.getFileContent` |
 | `16_ai_models_mcp`      | Interface with LLMs (Gemini, Anthropic)   | `ai.models.gemini.generateContent`, `ai.models.anthropic.createMessage` |
+| `17_crypto_trader_mcp`  | Cryptocurrency trading & market analysis    | `crypto.market.price`, `crypto.ta.indicators`, `crypto.trade.simulate` |
+| `18_vector_db_mcp`      | Vector database for semantic search         | `vector.search.semantic`, `vector.document.add`, `vector.collection.create` |
 
 For a Kubernetes reference implementation, see [mcp-server-kubernetes](https://github.com/Flux159/mcp-server-kubernetes).
 
@@ -152,11 +160,14 @@ For a Kubernetes reference implementation, see [mcp-server-kubernetes](https://g
 | `08_k8s_mcp`            | 8008 | Kubernetes cluster operations               |
 | `09_n8n_mcp`            | 8009 | n8n workflow orchestration                  |
 | `10_macos_mcp`          | 8010 | macOS system operations                     |
+| `11_documentation_mcp`  | 8011 | Documentation Management Service            |
 | `12_cmdb_mcp`           | 8012 | Configuration Management Database           |
 | `13_secrets_mcp`        | 8013 | Secrets Management Interface                |
 | `14_aider_mcp`          | 8014 | AI coding assistant service                 |
 | `15_freqtrade_mcp`      | 8015 | Freqtrade Knowledge & Source Hub            |
 | `16_ai_models_mcp`      | 8016 | AI Models (Gemini, Anthropic) Gateway       |
+| `17_crypto_trader_mcp`  | 8017 | Cryptocurrency Trading & Market Analysis    |
+| `18_vector_db_mcp`      | 8018 | Vector Database for Semantic Search & RAG   |
 
 ## Operating Principles
 
@@ -190,7 +201,7 @@ services:
   00_master_mcp:
     build: ./00_master_mcp
     ports:
-      - "8000:8000"
+      - "${MCP_PORT_00:-8000}:8000"
     networks:
       - mcp-network
   01_linux_cli_mcp:
@@ -199,10 +210,24 @@ services:
       - "8001:8001"
     networks:
       - mcp-network
-  02_windows_mcp:
-    build: ./02_windows_mcp
+  # ... services 02-10 follow similar pattern ...
+  11_documentation_mcp:
+    build: ./11_documentation_mcp
     ports:
-      - "8002:8002"
+      - "8011:8011"
+    networks:
+      - mcp-network
+  # ... services 12-16 follow similar pattern ...
+  17_crypto_trader_mcp:
+    build: ./17_crypto_trader_mcp
+    ports:
+      - "8017:8017"
+    networks:
+      - mcp-network
+  18_vector_db_mcp:
+    build: ./18_vector_db_mcp
+    ports:
+      - "8018:8018"
     networks:
       - mcp-network
   # ... remaining services follow the pattern build: ./NN_<name>_mcp ...

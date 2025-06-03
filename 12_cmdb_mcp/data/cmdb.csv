@@ -92,3 +92,5 @@ claudefreq_pgadmin,localhost:12580,Docker,Container,"claudefreq,PostgreSQL admin
 claudefreq_redis_commander,localhost:12581,Docker,Container,"claudefreq,Redis administration UI",/container/claudefreq_redis_commander,docker,Port mapping: 12581->8081
 claudefreq_nginx,localhost:12443,Docker,Container,"claudefreq,HTTPS/HTTP reverse proxy",/container/claudefreq_nginx,docker,Port mapping: 12443->443
 11_documentation_mcp,localhost:8011,Docker,Container,"mcp,8011",/container/11_documentation_mcp,docker,Port mapping: 8011->8011
+17_crypto_trader_mcp,localhost:8017,Docker,Container,"mcp,8017",/container/17_crypto_trader_mcp,docker,Port mapping: 8017->8017
+18_vector_db_mcp,localhost:8018,Docker,Container,"mcp,8018",/container/18_vector_db_mcp,docker,Port mapping: 8018->8018

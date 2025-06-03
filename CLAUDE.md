@@ -44,7 +44,7 @@ This is a multi-agent MCP (Model Context Protocol) system where each service run
 ### Service Organization
 Each service follows the pattern `NN_servicename_mcp/` where NN is a numeric prefix:
 - Service directory contains: `Dockerfile`, `mcp_server.py`, `requirements.txt`, `entrypoint.sh`
-- Services expose MCP tools via HTTP/SSE on designated ports (8000-8016)
+- Services expose MCP tools via HTTP/SSE on designated ports (8000-8018)
 - All services connect to the shared `mcp-network` Docker network
 
 ### Key Service Categories
@@ -59,13 +59,18 @@ Each service follows the pattern `NN_servicename_mcp/` where NN is a numeric pre
    - `04_google_cloud_mcp` (8004): GCP resource management
 
 3. **Data & Configuration**:
+   - `11_documentation_mcp` (8011): Documentation management with search & versioning
    - `12_cmdb_mcp` (8012): Configuration Management Database
    - `13_secrets_mcp` (8013): Centralized secrets management
+   - `18_vector_db_mcp` (8018): Vector database for semantic search & RAG
 
 4. **AI & Automation**:
    - `14_aider_mcp` (8014): AI coding assistant
    - `15_freqtrade_mcp` (8015): Trading bot knowledge base
    - `16_ai_models_mcp` (8016): LLM gateway (Gemini, Anthropic)
+
+5. **Trading & Finance**:
+   - `17_crypto_trader_mcp` (8017): Cryptocurrency trading & market analysis
 
 ### Service Communication
 - Services communicate via HTTP/SSE over the Docker network
@@ -89,24 +94,7 @@ Each service follows the pattern `NN_servicename_mcp/` where NN is a numeric pre
 
 ### Critical Missing Implementations
 
-#### 1. Web Services (Priority 1)
-**06_web_search_mcp** and **07_web_browsing_mcp** - Only README files exist, no actual implementations
-
-```python
-# 06_web_search_mcp/mcp_server.py - Basic implementation needed
-from duckduckgo_search import DDGS
-
-@mcp_server.tool("web.search.query")
-def search_web(query: str, engine: str = "duckduckgo", max_results: int = 5):
-    try:
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=max_results))
-        return {"query": query, "results": results}
-    except Exception as e:
-        return {"error": str(e)}
-```
-
-#### 2. Service Health Monitoring (Priority 1)
+#### 1. Service Health Monitoring (Priority 1)
 Add to 00_master_mcp:
 
 ```python
@@ -226,14 +214,13 @@ services:
 
 ### Development Priorities
 
-1. **Implement missing web services** (06, 07) - Critical for functionality
-2. **Add service health monitoring** - Essential for production readiness  
-3. **Fix service-specific bugs** (CMDB port, approval mechanisms)
-4. **Implement workflow persistence** - Important for complex operations
-5. **Add rate limiting and caching** - Performance and reliability
-6. **Enhance security** - API validation and authentication
-7. **Add comprehensive testing** - Quality assurance
-8. **Implement monitoring/alerting** - Operations support
+1. **Add service health monitoring** - Essential for production readiness  
+2. **Fix service-specific bugs** (CMDB port, approval mechanisms)
+3. **Implement workflow persistence** - Important for complex operations
+4. **Add rate limiting and caching** - Performance and reliability
+5. **Enhance security** - API validation and authentication
+6. **Add comprehensive testing** - Quality assurance
+7. **Implement monitoring/alerting** - Operations support
 
 ### Testing Strategy
 ```python

@@ -21,6 +21,8 @@ services:
     restart: unless-stopped
     depends_on:
       - 01_linux_cli_mcp
+      - 06_web_search_mcp
+      - 07_web_browsing_mcp
       - 08_k8s_mcp
       - 12_cmdb_mcp
       - 13_secrets_mcp
@@ -88,6 +90,41 @@ services:
     restart: unless-stopped
     # Add privileged: true ONLY if managing the Docker host via socket mount
     # privileged: true 
+
+  06_web_search_mcp:
+    build:
+      context: ./06_web_search_mcp
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8006"
+    environment:
+      - MCP_PORT=8006
+      # Search engine API keys (optional, DuckDuckGo works without key)
+      # - GOOGLE_API_KEY_SECRET_PATH=/run/secrets/google_api_key
+      # - GOOGLE_CSE_ID=your-custom-search-engine-id
+      # - BING_API_KEY_SECRET_PATH=/run/secrets/bing_api_key
+    volumes:
+      - ./secrets:/secrets:ro
+    networks:
+      - mcp-network
+    restart: unless-stopped
+
+  07_web_browsing_mcp:
+    build:
+      context: ./07_web_browsing_mcp
+      dockerfile: Dockerfile
+    ports:
+      - "8007:8007"
+    environment:
+      - MCP_PORT=8007
+      - BROWSER_TYPE=chromium
+    volumes:
+      - ./secrets:/secrets:ro
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    # Add shared memory size for Chrome
+    shm_size: '2gb'
 
   13_secrets_mcp:
     build:

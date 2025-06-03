@@ -8,3 +8,5 @@ secrets/gemini_api_key.txt
 secrets/anthropic_api_key.txt
 secrets/keepass_alf_password.txt
 15_freqtrade_mcp/user_data/logs/freqtrade.log
+.env
+.gitignore

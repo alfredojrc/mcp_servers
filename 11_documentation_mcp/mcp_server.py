@@ -580,4 +580,5 @@ except Exception as e:
 
 if __name__ == "__main__":
     # Run the FastMCP server
-    mcp.run(host="0.0.0.0", port=MCP_PORT)
+    import uvicorn
+    uvicorn.run(mcp, host="0.0.0.0", port=MCP_PORT, log_level="info")

@@ -10,6 +10,7 @@ services:
       # Environment variables for proxied service URLs
       - MCP_PORT_01=${MCP_PORT_01:-8001}       # For 01_linux_cli_mcp
       - MCP_PORT_08_K8S=${MCP_PORT_08_K8S:-8008} # For 08_k8s_mcp (runs on 8008)
+      - MCP_PORT_11=${MCP_PORT_11:-8011}       # For 11_documentation_mcp
       - MCP_PORT_12=${MCP_PORT_12:-8012}       # For 12_cmdb_mcp
       - MCP_PORT_13=${MCP_PORT_13:-8013}       # For 13_secrets_mcp
       - MCP_PORT_15=${MCP_PORT_15:-8015}       # For 15_freqtrade_mcp
@@ -22,6 +23,7 @@ services:
     depends_on:
       - 01_linux_cli_mcp
       - 08_k8s_mcp
+      - 11_documentation_mcp
       - 12_cmdb_mcp
       - 13_secrets_mcp
       - 15_freqtrade_mcp
@@ -164,6 +166,34 @@ services:
     networks:
       - mcp-network
     restart: unless-stopped
+
+  11_documentation_mcp:
+    build:
+      context: ./11_documentation_mcp
+      dockerfile: Dockerfile
+    ports:
+      - "${MCP_PORT_11:-8011}:8011"
+    environment:
+      - MCP_PORT=8011
+      - DOCS_ROOT=/workspace/docs
+      - REQUIRE_APPROVAL=false  # Set to false for easier external access
+      - LOG_LEVEL=INFO
+    volumes:
+      # Mount documentation directory - persists across container restarts
+      - ./11_documentation_mcp/docs:/workspace/docs
+      # Mount search index - persists search data
+      - ./11_documentation_mcp/search_index:/workspace/search_index
+      # Mount secrets for approval tokens if needed
+      - ./secrets:/secrets:ro
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8011/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   14_aider_mcp:
     build:

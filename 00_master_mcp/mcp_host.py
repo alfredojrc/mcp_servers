@@ -55,6 +55,7 @@ MCP_PORT = int(os.getenv("MCP_PORT", 8000))
 FOCUSED_DEFAULT_SERVERS = {
     "os.linux":       f"http://01_linux_cli_mcp:{os.getenv('MCP_PORT_01', '8001')}",
     "infra.k8s":      f"http://08_k8s_mcp:{os.getenv('MCP_PORT_08_K8S', '8008')}",
+    "docs":           f"http://11_documentation_mcp:{os.getenv('MCP_PORT_11', '8011')}",
     "cmdb":           f"http://12_cmdb_mcp:{os.getenv('MCP_PORT_12', '8012')}",
     "secrets":        f"http://13_secrets_mcp:{os.getenv('MCP_PORT_13', '8013')}",
     "trading.freqtrade.knowledge": f"http://15_freqtrade_mcp:{os.getenv('MCP_PORT_15', '8015')}",

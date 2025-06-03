@@ -19,6 +19,7 @@ These are the core Model Context Protocol services that form the foundation of t
 | `08_k8s_mcp`                   | mcp_servers-08_k8s_mcp               | `8008->8008`     | 8008                  | Kubernetes cluster interactions             |
 | `09_n8n_mcp`                   | mcp_servers-09_n8n_mcp               | `8009->8009`     | 8009                  | n8n workflows (if implemented)              |
 | `10_macos_mcp`                 | mcp_servers-10_macos_mcp             | `8010->8010`     | 8010                  | macOS operations (if implemented)           |
+| `11_documentation_mcp`         | mcp_servers-11_documentation_mcp     | `8011->8011`     | 8011                  | Documentation Management Service            |
 | `12_cmdb_mcp`                  | mcp_servers-12_cmdb_mcp              | `8012->8012`     | 8012                  | Configuration Management Database           |
 | `13_secrets_mcp`               | mcp_servers-13_secrets_mcp           | `8013->8013`     | 8013                  | Secrets management                          |
 | `14_aider_mcp`                 | mcp_servers-14_aider_mcp             | `8014->8014`     | 8014                  | AI coding assistant (Aider)                 |
@@ -204,7 +205,7 @@ These are the core Model Context Protocol services that form the foundation of t
 
 ## Port Range Summary
 
-- **8000-8016**: MCP Services (Model Context Protocol)
+- **8000-8016**: MCP Services (Model Context Protocol) - Note: 8006-8007 removed (redundant with Claude Code web capabilities)
 - **3000-3100**: Monitoring Services (Grafana, Loki)
 - **4444-7900**: Browser Automation (Selenium)
 - **5678**: n8n Workflow Automation

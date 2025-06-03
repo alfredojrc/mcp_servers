@@ -91,3 +91,4 @@ claudefreq_wiki,localhost:12600,Docker,Container,"claudefreq,Documentation wiki"
 claudefreq_pgadmin,localhost:12580,Docker,Container,"claudefreq,PostgreSQL administration UI",/container/claudefreq_pgadmin,docker,Port mapping: 12580->80
 claudefreq_redis_commander,localhost:12581,Docker,Container,"claudefreq,Redis administration UI",/container/claudefreq_redis_commander,docker,Port mapping: 12581->8081
 claudefreq_nginx,localhost:12443,Docker,Container,"claudefreq,HTTPS/HTTP reverse proxy",/container/claudefreq_nginx,docker,Port mapping: 12443->443
+11_documentation_mcp,localhost:8011,Docker,Container,"mcp,8011",/container/11_documentation_mcp,docker,Port mapping: 8011->8011

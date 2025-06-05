@@ -1,0 +1,32 @@
+FROM python:3.10-slim
+
+WORKDIR /workspace
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first (without TA-Lib)
+COPY requirements.txt .
+RUN grep -v "TA-Lib" requirements.txt > requirements_no_talib.txt && \
+    pip install --no-cache-dir -r requirements_no_talib.txt
+
+# Install pandas-ta instead of TA-Lib (pure Python alternative)
+RUN pip install --no-cache-dir pandas-ta
+
+# Copy application files
+COPY mcp_server.py .
+COPY entrypoint.sh .
+
+# Make entrypoint executable
+RUN chmod +x entrypoint.sh
+
+# Create data directories
+RUN mkdir -p /workspace/data/cache /workspace/data/historical
+
+# Expose port
+EXPOSE 8017
+
+# Set entrypoint
+ENTRYPOINT ["/workspace/entrypoint.sh"]

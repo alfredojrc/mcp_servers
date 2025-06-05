@@ -2,6 +2,8 @@
 
 This repository contains a Docker Compose–based multi-agent system powered by the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction). Each MCP service runs in its own container on a shared `mcp-network`, and a central orchestrator (`00_master_mcp`) coordinates workflows by invoking tools exposed by these services.
 
+**📖 Claude Desktop/Code Setup**: See [Claude MCP Definitive Guide](docs/kb/claude-mcp-definitive-guide.md) for configuration instructions.
+
 ## Table of Contents
 
 1.  [Overview](#overview)

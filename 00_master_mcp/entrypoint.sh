@@ -6,17 +6,18 @@ set -e
 # Print commands and their arguments as they are executed.
 # set -x # Uncomment for debugging
 
-SERVICE_PORT=${MCP_PORT:-8000}
-LOG_LEVEL_CONFIG=${LOG_LEVEL:-info} # Default to info if not set
+echo "--- Master Orchestrator Entrypoint (Direct FastMCP Run) ---"
 
-# Corrected application variable name
-APP_VARIABLE_NAME="main_app"
+# Variables for Uvicorn are no longer directly used by the execution command,
+# but we can still display them if they are set for informational purposes.
+echo "MCP_PORT (from env, if set): ${MCP_PORT:-8000} (Note: Port is now configured in mcp_host.py for FastMCP run)"
+echo "LOG_LEVEL (from env, if set): ${LOG_LEVEL:-info} (Note: Log level is now configured in mcp_host.py for FastMCP run)"
 
-echo "--- Master Orchestrator Entrypoint ---"
-echo "MCP_PORT: ${SERVICE_PORT}"
-echo "LOG_LEVEL: ${LOG_LEVEL_CONFIG}"
-echo "Executing Uvicorn: uvicorn mcp_host:${APP_VARIABLE_NAME} --host 0.0.0.0 --port ${SERVICE_PORT} --log-level ${LOG_LEVEL_CONFIG}"
-echo "------------------------------------"
+echo "--- Content of mcp_host.py as seen by container: ---"
+cat /workspace/mcp_host.py
+echo "--- End of mcp_host.py content ---"
 
-# Execute the Python script directly to run FastMCP with SSE
-exec python mcp_host.py 
+echo "Executing Python script: python /workspace/mcp_host.py"
+
+# Execute the python script directly. `exec` replaces the shell process with the Python process.
+exec python /workspace/mcp_host.py 

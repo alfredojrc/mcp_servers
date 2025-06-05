@@ -1,0 +1,3 @@
+#!/bin/bash
+cd /data/mcp_servers
+exec python3 /data/mcp_servers/simple_mcp_test.py

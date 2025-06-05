@@ -1,0 +1,25 @@
+id,name,type,status,description,port,namespace,location,notes
+00_master_mcp,Master MCP Orchestrator,mcp_service,active,Central orchestrator that routes requests to specialized MCP services,8000,master,/data/mcp_servers/00_master_mcp,Core service
+01_documentation_mcp,Documentation Service,mcp_service,active,Documentation management with search and versioning capabilities,8001,docs,/data/mcp_servers/01_documentation_mcp,Renamed from 11_documentation_mcp
+02_cmdb_mcp,CMDB Service,mcp_service,active,Configuration Management Database for tracking infrastructure items,8002,cmdb,/data/mcp_servers/02_cmdb_mcp,Renamed from 12_cmdb_mcp
+03_secrets_mcp,Secrets Service,mcp_service,active,Centralized secrets management supporting multiple backends,8003,secrets,/data/mcp_servers/03_secrets_mcp,Renamed from 13_secrets_mcp
+04_ai_models_mcp,AI Models Service,mcp_service,active,LLM gateway providing access to Gemini and Anthropic models,8004,ai.models,/data/mcp_servers/04_ai_models_mcp,Renamed from 16_ai_models_mcp
+05_vector_db_mcp,Vector DB Service,mcp_service,active,Vector database for semantic search and RAG using ChromaDB,8005,vector,/data/mcp_servers/05_vector_db_mcp,Renamed from 18_vector_db_mcp
+prometheus,Prometheus,monitoring,active,Metrics collection and storage,9090,monitoring,docker_container,Infrastructure monitoring
+grafana,Grafana,monitoring,active,Metrics and logs visualization dashboard,3000,monitoring,docker_container,Infrastructure monitoring
+loki,Loki,monitoring,active,Log aggregation system,3100,monitoring,docker_container,Infrastructure monitoring
+promtail,Promtail,monitoring,active,Log shipping agent,none,monitoring,docker_container,Infrastructure monitoring
+01_linux_cli_mcp,Linux CLI Service,mcp_service,archived,Linux command execution and SSH operations,8001,os.linux,/data/mcp_servers/archived_services/01_linux_cli_mcp,Archived - over-engineered
+02_windows_mcp,Windows Service,mcp_service,planned,Windows PowerShell command execution,8002,os.windows,/data/mcp_servers/archived_services/02_windows_mcp,Placeholder - never implemented
+03_azure_mcp,Azure Service,mcp_service,planned,Azure cloud resource management,8003,cloud.azure,/data/mcp_servers/archived_services/03_azure_mcp,Placeholder - never implemented
+04_google_cloud_mcp,GCP Service,mcp_service,planned,Google Cloud Platform resource management,8004,cloud.gcp,/data/mcp_servers/archived_services/04_google_cloud_mcp,Placeholder - never implemented
+05_vmware_mcp,VMware Service,mcp_service,planned,VMware vSphere infrastructure control,8005,infra.vmware,/data/mcp_servers/archived_services/05_vmware_mcp,Placeholder - never implemented
+06_web_search_mcp,Web Search Service,mcp_service,deprecated,Web search functionality,8006,web.search,removed,Redundant with Claude tools
+07_web_browsing_mcp,Web Browsing Service,mcp_service,deprecated,Web browsing functionality,8007,web.browse,removed,Redundant with Claude tools
+08_k8s_mcp,Kubernetes Service,mcp_service,archived,Kubernetes cluster management,8008,infra.k8s,/data/mcp_servers/archived_services/08_k8s_mcp,Archived - over-engineered
+09_n8n_mcp,n8n Service,mcp_service,planned,n8n workflow automation integration,8009,automation.n8n,/data/mcp_servers/archived_services/09_n8n_mcp,Placeholder - never implemented
+10_macos_mcp,macOS Service,mcp_service,planned,macOS system management via SSH,8010,os.macos,/data/mcp_servers/archived_services/10_macos_mcp,Placeholder - never implemented
+14_aider_mcp,Aider Service,mcp_service,archived,AI coding assistant integration,8014,dev.aider,/data/mcp_servers/archived_services/14_aider_mcp,Archived - over-engineered
+15_freqtrade_mcp,Freqtrade Service,mcp_service,archived,Trading bot knowledge base,8015,trading.freqtrade.knowledge,/data/mcp_servers/archived_services/15_freqtrade_mcp,Archived - questionable value
+17_crypto_trader_mcp,Crypto Trader Service,mcp_service,archived,Cryptocurrency trading and market analysis,8017,crypto,/data/mcp_servers/archived_services/17_crypto_trader_mcp,Archived - questionable value
+aicrusher,Physical Server,infrastructure,active,Ubuntu 24.04 LTS server hosting Docker containers,22,ssh,192.168.68.100/22,SSH access via alf@macbook key

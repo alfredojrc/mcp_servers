@@ -117,6 +117,34 @@ async def check_service_health():
 - Missing workflow state persistence
 - No error handling for downstream service failures  
 - Workflow engine lacks recovery mechanisms
+- **For detailed connection troubleshooting (Docker sync, 400/404 errors, SSE setup), see: [Mastering the `00_master_mcp` Orchestrator: Connection & Troubleshooting](docs/kb/claude-mcp-definitive-guide.md#mastering-the-00_master_mcp-orchestrator-connection--troubleshooting)**
+- **Client-Side Schema Validation Fix (`Invalid literal value, expected "object"`):**
+  - The `fastmcp.tools.Tool` class (from the `fastmcp` library, distinct from the generic MCP `Tool` spec) has a specific behavior regarding input schemas.
+  - To ensure the client correctly receives and validates tool schemas, **both** the `parameters` field and the `inputSchema` field of the `fastmcp.tools.Tool` constructor must be populated with the *actual JSON schema definition* for the tool's inputs.
+  - Simply setting `parameters={}` (if no input params) and relying on `inputSchema` to carry the definition (e.g. `inputSchema={"type": "object"}`) was insufficient and led to the client error.
+  - Corrected by ensuring `parameters` also holds the schema, e.g., `parameters={"type": "object", "properties": {}, "additionalProperties": False}` (or the full schema if inputs exist), and `inputSchema` mirrors this.
+- **Client-Side Tool Name Validation Fix (`tools.X.custom.name: String should match pattern '^[a-zA-Z0-9_-]{1,64}$'`):**
+  - After successfully connecting, a new error emerged indicating that tool names were not conforming to the regex `^[a-zA-Z0-9_-]{1,64}$`.
+  - This pattern does not allow dots (`.`).
+  - Our tool names (e.g., `orchestrator.executeWorkflow`, `system.health`) used dots for namespacing.
+  - **Fix:** Renamed tools to use underscores instead of dots (e.g., `orchestrator_executeWorkflow`, `system_health`).
+  - The error message's reference to `tools.15.custom.name` was likely a misdirection by the client's error reporting when encountering the invalid character in a tool name, as we only define 3 tools. The core issue was the dot.
+- **Pydantic `Missing required argument` for `context`:**
+  - After fixing tool names, a new error emerged when trying to call tools like `system_listServices` or `system_health`: `1 validation error for call[function_name] context Missing required argument`.
+  - This occurred because the Python implementation functions for these tools declared `context: dict` as a required parameter, but `fastmcp` was not automatically injecting it for tools defined with no input parameters in their schema.
+  - **Fix:** Modified the function signatures in `00_master_mcp/mcp_host.py` to make the `context` parameter optional (e.g., `async def list_configured_services_implementation(context: Optional[dict] = None)`) and updated the internal logic to safely access `context.get("correlation_id") if context else None`.
+  - This allowed tools like `system_listServices` to be called successfully.
+- **`system_health` Tool Execution:**
+  - The `system_health` tool was successfully called.
+  - **Outcome:** The orchestrator itself reported as "healthy". However, issues were identified with downstream services:
+    - `docs` (11_documentation_mcp): Unhealthy (404 Not Found)
+    - `crypto` (17_crypto_trader_mcp): Unhealthy (404 Not Found)
+    - `vector` (18_vector_db_mcp): Unreachable (DNS resolution failure - "[Errno -3] Temporary failure in name resolution")
+  - This indicates that while the orchestrator's core functionality for this tool is working, there are underlying issues with these specific downstream services or their network configuration.
+- **Workflow Execution Namespace Bug (`Service namespace 'os' not configured`):**
+  - When `orchestrator_executeWorkflow` was called with a service like `os.linux`, it was incorrectly trying to find a service registered as `os` instead of the full `os.linux`.
+  - This was due to `MCPServiceClient.call_tool` splitting the combined `service.tool` name at the first dot, resulting in a truncated namespace.
+  - **Fix:** Modified `MCPServiceClient.call_tool` to accept `service_namespace` and `tool_name` as separate arguments. The `WorkflowEngine` now passes `step['service']` (the full namespace) and `step['tool']` directly, ensuring correct lookup in the `SERVICES` dictionary.
 
 #### 01_linux_cli_mcp
 - Over-engineered SecurityValidator for simple use case
@@ -214,13 +242,14 @@ services:
 
 ### Development Priorities
 
-1. **Add service health monitoring** - Essential for production readiness  
-2. **Fix service-specific bugs** (CMDB port, approval mechanisms)
-3. **Implement workflow persistence** - Important for complex operations
-4. **Add rate limiting and caching** - Performance and reliability
-5. **Enhance security** - API validation and authentication
-6. **Add comprehensive testing** - Quality assurance
-7. **Implement monitoring/alerting** - Operations support
+1. **Implement missing web services** (06, 07) - Critical for functionality
+2. **Add service health monitoring** - Essential for production readiness  
+3. **Fix service-specific bugs** (CMDB port, approval mechanisms)
+4. **Implement workflow persistence** - Important for complex operations
+5. **Add rate limiting and caching** - Performance and reliability
+6. **Enhance security** - API validation and authentication
+7. **Add comprehensive testing** - Quality assurance
+8. **Implement monitoring/alerting** - Operations support
 
 ### Testing Strategy
 ```python
@@ -261,3 +290,9 @@ The Documentation MCP Service (11_documentation_mcp) has a comprehensive improve
 5. **Workflow Automation**: CI/CD integration and scheduled updates
 
 See `/data/mcp_servers/11_documentation_mcp/IMPROVEMENT_ROADMAP.md` for full details.
+
+### Remaining Steps & Future Work
+
+1.  **Test `system_health`:** ~~Confirm that the Claude Code client can successfully call the `system_health` tool.~~ (DONE - tool works, downstream issues identified)
+2.  **Test `orchestrator_executeWorkflow`:** Execute a simple workflow to ensure the orchestrator can call downstream services.
+3.  **Troubleshoot Downstream Services:** Address the 404 errors for `docs` and `crypto` services, and the DNS resolution error for the `vector` service.

@@ -10,3 +10,6 @@ secrets/keepass_alf_password.txt
 15_freqtrade_mcp/user_data/logs/freqtrade.log
 .env
 .gitignore
+05_vector_db_mcp/data
+05_vector_db_mcp/data/chroma
+05_vector_db_mcp/data/chroma/chroma.sqlite3
